@@ -32,5 +32,51 @@ Route::prefix('personal')->group(function () {
 
 });
 
+Route::prefix('admin')->group(function () {
+
+    // Dashboard Personal
+    Route::get('/dashboardAdmin', function () {
+        // Pastikan file ada di: resources/js/Pages/Personal/Dashboard.tsx
+        return Inertia::render('Admin/Dashboard');
+    })->name('admin.dashboard');
+
+    // Profil Personal
+    Route::get('/profileAdmin', function () {
+        // Pastikan file ada di: resources/js/Pages/Admin/Profile.tsx
+        return Inertia::render('Admin/Profile');
+    })->name('admin.profile');
+
+    Route::get('/agendaAdmin', function () {
+        // Pastikan file ada di: resources/js/Pages/Admin/Agenda.tsx
+        return Inertia::render('Admin/Agenda');
+    })->name('admin.agenda');
+
+    Route::get('/penggunaAdmin', function () {
+        // Pastikan file ada di: resources/js/Pages/Admin/Pengguna.tsx
+        return Inertia::render('Admin/Pengguna');
+    })->name('admin.pengguna');
+
+    Route::get('/keuanganAdmin', function () {
+        // Pastikan file ada di: resources/js/Pages/Admin/Keuangan.tsx
+        return Inertia::render('Admin/Keuangan');
+    })->name('admin.keuangan');
+
+    Route::get('/teamAdmin', function () {
+        // Pastikan file ada di: resources/js/Pages/Admin/Tim.tsx
+        return Inertia::render('Admin/Tim');
+    })->name('admin.team');
+
+    Route::get('/supportAdmin', function () {
+        // Pastikan file ada di: resources/js/Pages/Admin/Bantuan.tsx
+        return Inertia::render('Admin/Bantuan');
+    })->name('admin.support');
+
+    Route::get('/settingsAdmin', function () {
+        // Pastikan file ada di: resources/js/Pages/Admin/Pengaturan.tsx
+        return Inertia::render('Admin/Pengaturan');
+    })->name('admin.settings');
+
+});
+
 
 require __DIR__ . '/settings.php';
