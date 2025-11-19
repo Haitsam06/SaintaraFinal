@@ -10,24 +10,31 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('instansis', function (Blueprint $table) {
-            $table->id('id_instansi'); // Menggunakan id custom jika harus varchar
-            $table->string('nama_instansi')->unique();
-            $table->string('no_instansi')->nullable();
-            $table->string('nama_owner');
+        // HAPUS 's' DISINI. Dari 'instansis' menjadi 'instansi'
+        Schema::create('instansi', function (Blueprint $table) {
+
+            $table->string('id_instansi')->primary(); // ID Custom
+
+            // ... (Sisa kolom biarkan sama seperti sebelumnya) ...
+            $table->foreignId('role_id')->nullable()->constrained('roles')->onDelete('set null');
+            $table->string('nama_instansi');
             $table->string('email')->unique();
-            $table->string('no_telp');
-            $table->string('website')->nullable();
-            $table->text('alamat');
+            $table->string('password');
+            $table->string('no_telp')->nullable();
+            $table->text('alamat')->nullable();
+            $table->string('pic_name')->nullable();
+            $table->string('bidang')->nullable();
+            $table->string('status_akun')->default('aktif');
+            $table->text('foto')->nullable();
+            $table->date('tanggal_dibuat')->nullable();
+
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('instansis');
+        // Ubah ini juga jadi 'instansi'
+        Schema::dropIfExists('instansi');
     }
 };

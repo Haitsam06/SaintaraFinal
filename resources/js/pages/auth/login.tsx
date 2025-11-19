@@ -1,56 +1,100 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { FormEventHandler, useEffect } from 'react';
+import { Head, Link } from '@inertiajs/react';
+import axios from 'axios';
+import { FormEventHandler, useState } from 'react';
 
-// Komponen Logo Placeholder
+// Pastikan Anda sudah menginstall axios: npm install axios
+
 const Logo = () => (
     <div className="flex h-18 w-18 items-center justify-center rounded-full">
         <img src="/assets/logo/5.png" alt="Saintara Logo" className="h-16 w-16 object-contain" />
     </div>
 );
 
-export default function Login({ status, canResetPassword }: { status?: string; canResetPassword?: boolean }) {
-    // useForm dari Inertia/Breeze
-    const { data, setData, post, processing, errors, reset } = useForm({
+export default function Login() {
+    // State manual (pengganti useForm Inertia karena kita pakai API Token)
+    const [values, setValues] = useState({
         email: '',
         password: '',
         remember: false,
     });
 
-    useEffect(() => {
-        return () => {
-            reset('password');
-        };
-    }, []);
+    const [processing, setProcessing] = useState(false);
+    const [errors, setErrors] = useState<{ email?: string; password?: string; message?: string }>({});
 
-    const submit: FormEventHandler = (e) => {
+    // Handle perubahan input
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { id, value, type, checked } = e.target;
+        setValues((prev) => ({
+            ...prev,
+            [id]: type === 'checkbox' ? checked : value,
+        }));
+    };
+
+    const submit: FormEventHandler = async (e) => {
         e.preventDefault();
-        post('login');
+        setProcessing(true);
+        setErrors({}); // Reset error sebelum request
+
+        try {
+            // 1. Tembak ke API Laravel yang sudah kita buat
+            // Pastikan URL sesuai dengan port Laravel (biasanya 8000)
+            const response = await axios.post('http://127.0.0.1:8000/api/login', {
+                email: values.email,
+                password: values.password,
+            });
+
+            // 2. Jika sukses, simpan Token & Data User
+            const token = response.data.access_token;
+            const user = response.data.user;
+
+            localStorage.setItem('token', token);
+            localStorage.setItem('user_data', JSON.stringify(user));
+
+            // 3. Redirect ke Dashboard (Kita pakai window.location agar state refresh penuh)
+            window.location.href = '/admin/dashboardAdmin';
+        } catch (err: any) {
+            // 4. Tangani Error
+            if (err.response && err.response.status === 422) {
+                // Error Validasi (Email format salah, dll)
+                // Mapping error dari Laravel ke state React
+                const apiErrors = err.response.data.errors;
+                const newErrors: any = {};
+                if (apiErrors.email) newErrors.email = apiErrors.email[0];
+                if (apiErrors.password) newErrors.password = apiErrors.password[0];
+                setErrors(newErrors);
+            } else if (err.response && err.response.status === 401) {
+                // Error Login Gagal (Password salah / Akun tidak ditemukan)
+                setErrors({
+                    message: err.response.data.message || 'Email atau password salah.',
+                });
+            } else {
+                setErrors({ message: 'Terjadi kesalahan pada server.' });
+            }
+        } finally {
+            setProcessing(false);
+        }
     };
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-saintara-yellow p-6 font-poppins">
             <Head title="Masuk Akun" />
 
-            {/* Kartu Form Putih */}
             <div className="relative w-full max-w-md rounded-3xl bg-white p-8 shadow-xl md:p-12">
-                {/* Tombol Close (Opsional) */}
+                {/* Tombol Close */}
                 <Link href="/" className="absolute top-6 right-6 text-gray-400 transition-colors hover:text-gray-600">
                     <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            fillRule="evenodd"
-                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                            clipRule="evenodd"
-                        ></path>
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path>
                     </svg>
                 </Link>
 
-                {/* Logo & Judul */}
+                {/* Header */}
                 <div className="flex flex-col items-center">
                     <Logo />
                     <h2 className="mt-4 mb-8 text-center text-2xl font-bold text-gray-900">Masuk Akun Saintara</h2>
                 </div>
 
-                {status && <div className="mb-4 text-sm font-medium text-green-600">{status}</div>}
+                {/* Pesan Error Global (Status/Alert) */}
+                {errors.message && <div className="mb-4 rounded bg-red-100 p-3 text-center text-sm font-medium text-red-600">{errors.message}</div>}
 
                 <form onSubmit={submit} className="space-y-5">
                     {/* Email */}
@@ -61,12 +105,12 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                         <input
                             id="email"
                             type="email"
-                            value={data.email}
+                            value={values.email}
+                            onChange={handleChange}
                             autoComplete="username"
                             autoFocus
-                            onChange={(e) => setData('email', e.target.value)}
                             required
-                            className="w-full rounded-lg border-gray-300 px-4 py-3 text-black shadow-sm focus:border-saintara-yellow focus:ring-saintara-yellow"
+                            className={`w-full rounded-lg border px-4 py-3 text-black shadow-sm focus:ring-saintara-yellow ${errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-saintara-yellow'}`}
                         />
                         {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
                     </div>
@@ -79,53 +123,39 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                         <input
                             id="password"
                             type="password"
-                            value={data.password}
+                            value={values.password}
+                            onChange={handleChange}
                             autoComplete="current-password"
-                            onChange={(e) => setData('password', e.target.value)}
                             required
-                            className="w-full rounded-lg border-gray-300 px-4 py-3 text-black shadow-sm focus:border-saintara-yellow focus:ring-saintara-yellow"
+                            className={`w-full rounded-lg border px-4 py-3 text-black shadow-sm focus:ring-saintara-yellow ${errors.password ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-saintara-yellow'}`}
                         />
                         {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
                     </div>
 
-                    {/* Remember Me & Forgot Password */}
+                    {/* Remember & Forgot */}
                     <div className="flex items-center justify-between">
                         <label className="flex items-center">
-                            <input
-                                type="checkbox"
-                                name="remember"
-                                checked={data.remember}
-                                onChange={(e) => setData('remember', e.target.checked)}
-                                className="rounded border-gray-300 text-saintara-yellow shadow-sm focus:ring-saintara-yellow"
-                            />
+                            <input id="remember" type="checkbox" checked={values.remember} onChange={handleChange} className="rounded border-gray-300 text-saintara-yellow shadow-sm focus:ring-saintara-yellow" />
                             <span className="ml-2 text-sm text-gray-600">Ingat Saya</span>
                         </label>
 
-                        {canResetPassword && (
-                            <Link href={'password.request'} className="text-sm font-medium text-gray-600 hover:text-gray-900 hover:underline">
-                                Forgot Password?
-                            </Link>
-                        )}
+                        <Link href="/forgot-password" className="text-sm font-medium text-gray-600 hover:text-gray-900 hover:underline">
+                            Lupa Password?
+                        </Link>
                     </div>
 
-                    {/* Tombol Submit */}
+                    {/* Button Submit */}
                     <div className="pt-4">
-                        <button
-                            type="submit"
-                            // Dibuat abu-abu (disabled) saat loading
-                            className="w-full rounded-full bg-gray-300 py-3 text-sm font-bold text-gray-900 shadow-md transition-all hover:bg-saintara-yellow disabled:opacity-50"
-                            disabled={processing}
-                        >
+                        <button type="submit" disabled={processing} className="w-full rounded-full bg-gray-300 py-3 text-sm font-bold text-gray-900 shadow-md transition-all hover:bg-saintara-yellow disabled:cursor-not-allowed disabled:opacity-50">
                             {processing ? 'Memproses...' : 'Masuk'}
                         </button>
                     </div>
                 </form>
 
-                {/* Footer Link (Daftar) */}
                 <div className="mt-8 text-center">
                     <p className="text-sm text-gray-600">
                         Belum punya akun?{' '}
-                        <Link href={'register'} className="font-bold text-saintara-yellow hover:underline">
+                        <Link href="/register" className="font-bold text-saintara-yellow hover:underline">
                             Daftar
                         </Link>
                     </p>
