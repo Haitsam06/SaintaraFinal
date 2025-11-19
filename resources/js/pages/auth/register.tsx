@@ -1,115 +1,212 @@
-import { login } from '@/routes';
-import { store } from '@/routes/register';
-import { Form, Head } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { FormEventHandler, useEffect } from 'react';
 
-import InputError from '@/components/input-error';
-import TextLink from '@/components/text-link';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-import AuthLayout from '@/layouts/auth-layout';
+// Komponen Logo Placeholder (Anda bisa ganti dengan SVG logo Anda)
+const Logo = () => (
+    <div className="flex h-18 w-18 items-center justify-center rounded-full">
+        <img src="/assets/logo/5.png" alt="Saintara Logo" className="h-16 w-16 object-contain" />
+    </div>
+);
 
 export default function Register() {
+    // Form state disesuaikan dengan field di gambar
+    const { data, setData, post, processing, errors, reset } = useForm({
+        namaLengkap: '',
+        namaPanggilan: '',
+        email: '',
+        noTelp: '',
+        negara: '',
+        kota: '',
+        password: '',
+        password_confirmation: '',
+    });
+
+    useEffect(() => {
+        // Reset password field saat komponen di-unmount
+        return () => {
+            reset('password', 'password_confirmation');
+        };
+    }, []);
+
+    // Handler untuk semua input
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setData(e.target.id as keyof typeof data, e.target.value);
+    };
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        // Mengirim data ke route 'register' (standar Breeze)
+        post('register');
+    };
+
     return (
-        <AuthLayout
-            title="Create an account"
-            description="Enter your details below to create your account"
-        >
-            <Head title="Register" />
-            <Form
-                {...store.form()}
-                resetOnSuccess={['password', 'password_confirmation']}
-                disableWhileProcessing
-                className="flex flex-col gap-6"
-            >
-                {({ processing, errors }) => (
-                    <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
-                                <Input
-                                    id="name"
-                                    type="text"
-                                    required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="name"
-                                    name="name"
-                                    placeholder="Full name"
-                                />
-                                <InputError
-                                    message={errors.name}
-                                    className="mt-2"
-                                />
-                            </div>
+        <div className="flex min-h-screen items-center justify-center bg-saintara-yellow p-6 font-poppins">
+            <Head title="Buat Akun" />
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="email"
-                                    name="email"
-                                    placeholder="email@example.com"
-                                />
-                                <InputError message={errors.email} />
-                            </div>
+            {/* Kartu Form Putih */}
+            <div className="w-full max-w-lg rounded-3xl bg-white p-8 shadow-xl md:p-12">
+                {/* Logo & Judul */}
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="password">Password</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    required
-                                    tabIndex={3}
-                                    autoComplete="new-password"
-                                    name="password"
-                                    placeholder="Password"
-                                />
-                                <InputError message={errors.password} />
-                            </div>
+                <div className="flex flex-col items-center">
+                    <Logo />
+                    <h2 className="mt-4 mb-8 text-center text-2xl font-bold text-gray-900">Buat Akun Saintara</h2>
+                </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation">
-                                    Confirm password
-                                </Label>
-                                <Input
-                                    id="password_confirmation"
-                                    type="password"
-                                    required
-                                    tabIndex={4}
-                                    autoComplete="new-password"
-                                    name="password_confirmation"
-                                    placeholder="Confirm password"
-                                />
-                                <InputError
-                                    message={errors.password_confirmation}
-                                />
-                            </div>
+                <form onSubmit={submit} className="space-y-4">
+                    {/* Nama Lengkap */}
+                    <div>
+                        <label htmlFor="namaLengkap" className="mb-1 block text-sm font-medium text-gray-700">
+                            Nama Lengkap
+                        </label>
+                        <input
+                            id="namaLengkap"
+                            type="text"
+                            value={data.namaLengkap}
+                            className="w-full rounded-lg border-gray-300 px-4 py-2 text-black shadow-sm focus:border-saintara-yellow focus:ring-saintara-yellow"
+                            onChange={handleChange}
+                            required
+                            autoFocus
+                        />
+                        {errors.namaLengkap && <p className="mt-1 text-xs text-red-500">{errors.namaLengkap}</p>}
+                    </div>
 
-                            <Button
-                                type="submit"
-                                className="mt-2 w-full"
-                                tabIndex={5}
-                                data-test="register-user-button"
-                            >
-                                {processing && <Spinner />}
-                                Create account
-                            </Button>
+                    {/* Nama Panggilan */}
+                    <div>
+                        <label htmlFor="namaPanggilan" className="mb-1 block text-sm font-medium text-gray-700">
+                            Nama Panggilan
+                        </label>
+                        <input
+                            id="namaPanggilan"
+                            type="text"
+                            value={data.namaPanggilan}
+                            className="w-full rounded-lg border-gray-300 px-4 py-2 text-black shadow-sm focus:border-saintara-yellow focus:ring-saintara-yellow"
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                        <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
+                            Email
+                        </label>
+                        <input
+                            id="email"
+                            type="email"
+                            value={data.email}
+                            className="w-full rounded-lg border-gray-300 px-4 py-2 text-black shadow-sm focus:border-saintara-yellow focus:ring-saintara-yellow"
+                            onChange={handleChange}
+                            required
+                        />
+                        {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
+                    </div>
+
+                    {/* No Telp */}
+                    <div>
+                        <label htmlFor="noTelp" className="mb-1 block text-sm font-medium text-gray-700">
+                            No telp
+                        </label>
+                        <input
+                            id="noTelp"
+                            type="tel"
+                            value={data.noTelp}
+                            className="w-full rounded-lg border-gray-300 px-4 py-2 text-black shadow-sm focus:border-saintara-yellow focus:ring-saintara-yellow"
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    {/* Negara & Kota */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="negara" className="mb-1 block text-sm font-medium text-gray-700">
+                                Negara
+                            </label>
+                            <input
+                                id="negara"
+                                type="text"
+                                value={data.negara}
+                                className="w-full rounded-lg border-gray-300 px-4 py-2 text-black shadow-sm focus:border-saintara-yellow focus:ring-saintara-yellow"
+                                onChange={handleChange}
+                            />
                         </div>
-
-                        <div className="text-center text-sm text-muted-foreground">
-                            Already have an account?{' '}
-                            <TextLink href={login()} tabIndex={6}>
-                                Log in
-                            </TextLink>
+                        <div>
+                            <label htmlFor="kota" className="mb-1 block text-sm font-medium text-gray-700">
+                                Kota
+                            </label>
+                            <input
+                                id="kota"
+                                type="text"
+                                value={data.kota}
+                                className="w-full rounded-lg border-gray-300 px-4 py-2 text-black shadow-sm focus:border-saintara-yellow focus:ring-saintara-yellow"
+                                onChange={handleChange}
+                            />
                         </div>
-                    </>
-                )}
-            </Form>
-        </AuthLayout>
+                    </div>
+
+                    {/* Password */}
+                    <div>
+                        <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
+                            Password
+                        </label>
+                        <input
+                            id="password"
+                            type="password"
+                            value={data.password}
+                            className="w-full rounded-lg border-gray-300 px-4 py-2 text-black shadow-sm focus:border-saintara-yellow focus:ring-saintara-yellow"
+                            onChange={handleChange}
+                            required
+                        />
+                        {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
+                    </div>
+
+                    {/* Konfirmasi Password (Wajib untuk Breeze) */}
+                    <div>
+                        <label htmlFor="password_confirmation" className="mb-1 block text-sm font-medium text-gray-700">
+                            Konfirmasi Password
+                        </label>
+                        <input
+                            id="password_confirmation"
+                            type="password"
+                            value={data.password_confirmation}
+                            className="w-full rounded-lg border-gray-300 px-4 py-2 text-black shadow-sm focus:border-saintara-yellow focus:ring-saintara-yellow"
+                            onChange={handleChange}
+                            required
+                        />
+                        {errors.password_confirmation && <p className="mt-1 text-xs text-red-500">{errors.password_confirmation}</p>}
+                    </div>
+
+                    {/* Tombol Submit */}
+                    <div className="pt-4">
+                        <button
+                            type="submit"
+                            className="w-full rounded-full bg-saintara-black py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-saintara-yellow disabled:opacity-50"
+                            disabled={processing}
+                        >
+                            {processing ? 'Mendaftar...' : 'Daftar'}
+                        </button>
+                    </div>
+                </form>
+
+                {/* Footer Links */}
+                <div className="mt-6 text-center">
+                    <p className="mb-4 text-xs text-gray-500">
+                        Dengan membuat akun, anda menyetujui{' '}
+                        <Link href="#" className="font-bold text-gray-700 hover:underline">
+                            Syarat dan Ketentuan
+                        </Link>{' '}
+                        dan{' '}
+                        <Link href="#" className="font-bold text-gray-700 hover:underline">
+                            Kebijakan Privasi
+                        </Link>
+                        {' '}yang berlaku.
+                    </p>
+                    <p className="text-sm text-gray-600">
+                        Sudah punya akun?{' '}
+                        <Link href={'login'} className="font-bold text-saintara-yellow hover:underline">
+                            Masuk
+                        </Link>
+                    </p>
+                </div>
+            </div>
+        </div>
     );
 }

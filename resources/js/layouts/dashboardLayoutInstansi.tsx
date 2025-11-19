@@ -1,101 +1,85 @@
-import { Link, usePage } from '@inertiajs/react'; // 1. TAMBAHKAN IMPORT usePage
-import React from 'react';
-import { HiBell, HiCalendar, HiCog, HiCurrencyDollar, HiHome, HiLogout, HiQuestionMarkCircle, HiUserGroup, HiUsers } from 'react-icons/hi';
+import { Link, usePage } from '@inertiajs/react';
+import { ReactNode } from 'react';
+// 1. Ubah Icon menjadi Solid (Hi) agar sesuai tema admin
+import { HiBell, HiCog, HiCreditCard, HiDocumentReport, HiDocumentText, HiHome, HiSupport, HiUserCircle } from 'react-icons/hi';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-    // 2. PANGGIL HOOK usePage UNTUK MENDAPATKAN URL SAAT INI
-    const { url } = usePage();
+// Mock Data untuk Header (disesuaikan dengan style admin)
+const user = {
+    name: 'PT. Maju Jaya Bersama',
+    initial: 'MJ', // Inisial untuk avatar
+};
 
-    // Data Mock User (Sementara)
-    const user = { name: 'User' };
-    const logout = () => console.log('Logout logic placeholder');
+// Daftar Menu (Isi tetap, tapi icon diubah ke solid)
+const menuItems = [
+    { name: 'Dashboard', href: '/instansi/dashboardInstansi', icon: HiHome },
+    { name: 'Profil Organisasi', href: '/instansi/profilInstansi', icon: HiUserCircle },
+    {
+        name: 'Daftar Tes Karakter',
+        href: '/instansi/tesInstansi',
+        icon: HiDocumentText,
+    },
+    {
+        name: 'Transaksi & Voucher',
+        href: '/instansi/transaksiInstansi',
+        icon: HiCreditCard,
+    },
+    { name: 'Hasil Tes', href: '/instansi/hasilInstansi', icon: HiDocumentReport },
+    { name: 'Bantuan', href: '/instansi/bantuanInstansi', icon: HiSupport },
+    { name: 'Pengaturan', href: '/instansi/pengaturanInstansi', icon: HiCog },
+];
 
-    // Daftar Menu Sidebar agar kodingan lebih rapi
-    const menuItems = [
-        {
-            name: 'Dashboard',
-            href: '/admin/dashboardAdmin',
-            icon: HiHome,
-        },
-        {
-            name: 'Profile',
-            href: '/admin/profileAdmin',
-            icon: HiUserGroup,
-        },
-        { name: 'Agenda', href: '/admin/agendaAdmin', icon: HiCalendar },
-        { name: 'Pengguna', href: '/admin/penggunaAdmin', icon: HiUsers },
-        {
-            name: 'Keuangan',
-            href: '/admin/keuanganAdmin',
-            icon: HiCurrencyDollar,
-        },
-        { name: 'Tim', href: '/admin/teamAdmin', icon: HiUserGroup },
-        {
-            name: 'Bantuan & Layanan',
-            href: '/admin/supportAdmin',
-            icon: HiQuestionMarkCircle,
-        },
-        { name: 'Pengaturan', href: '/admin/settingsAdmin', icon: HiCog },
-    ];
+export default function InstansiLayout({ children }: { children: ReactNode }) {
+    const { url } = usePage(); // Hook untuk cek URL aktif
 
     return (
         <div className="flex min-h-screen bg-gray-50 font-poppins">
-            {/* === SIDEBAR === */}
+            {/* === SIDEBAR (Diubah ke Tema Hitam/Kuning) === */}
             <aside className="flex w-64 flex-shrink-0 flex-col bg-saintara-black text-white transition-all duration-300">
                 {/* Logo */}
                 <div className="flex h-20 items-center justify-center border-b border-gray-700">
-                    <Link href="/">
+                    <Link href="/" className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-white"></div> {/* Logo Placeholder */}
                         <h1 className="cursor-pointer text-2xl font-bold tracking-wider text-white transition-colors hover:text-saintara-yellow">SAINTARA</h1>
                     </Link>
                 </div>
 
-                {/* Menu Items */}
+                {/* Menu Navigasi (Diubah ke Tema Hitam/Kuning) */}
                 <nav className="flex-1 space-y-2 px-4 py-6">
                     {menuItems.map((item) => {
-                        // 3. LOGIKA UNTUK MENGECEK APAKAH LINK AKTIF
                         const isActive = url.startsWith(item.href);
-
                         return (
                             <Link
                                 key={item.name}
                                 href={item.href}
-                                // ClassName diubah menjadi dinamis
+                                // ClassName disesuaikan dengan tema admin (hitam/kuning)
                                 className={`group flex items-center rounded-lg px-4 py-2.5 transition-all duration-300 ${
                                     isActive
-                                        ? 'bg-saintara-yellow font-bold text-gray-900 shadow-md' // Style jika Aktif
-                                        : 'text-gray-300 hover:bg-gray-700 hover:text-white' // Style jika Tidak Aktif
-                                } `}
+                                        ? 'bg-saintara-yellow font-bold text-gray-900 shadow-md' // Style Aktif
+                                        : 'text-gray-300 hover:bg-gray-700 hover:text-white' // Style Normal
+                                }`}
                             >
                                 <item.icon
                                     className={`mr-3 h-6 w-6 transition-colors ${
                                         isActive
-                                            ? 'text-gray-900' // Ikon jika Aktif
-                                            : 'text-gray-400 group-hover:text-saintara-yellow' // Ikon jika Tidak Aktif
-                                    } `}
+                                            ? 'text-gray-900' // Ikon Aktif
+                                            : 'text-gray-400 group-hover:text-saintara-yellow' // Ikon Normal
+                                    }`}
                                 />
                                 {item.name}
                             </Link>
                         );
                     })}
                 </nav>
-
-                {/* Logout Button */}
-                <div className="border-t border-gray-700 px-4 py-4">
-                    <button onClick={logout} className="flex w-full items-center rounded-lg px-4 py-2.5 text-gray-300 transition-colors hover:bg-gray-700 hover:text-white">
-                        <HiLogout className="mr-3 h-6 w-6 text-gray-400 group-hover:text-red-400" />
-                        Logout
-                    </button>
-                </div>
             </aside>
 
-            {/* === MAIN CONTENT WRAPPER === */}
+            {/* === KONTEN UTAMA (Kanan) === */}
             <div className="flex flex-1 flex-col overflow-hidden">
-                {/* === HEADER === */}
+                {/* === HEADER (Diubah ke Tema Admin) === */}
                 <header className="flex h-20 items-center justify-between border-b border-gray-100 bg-white px-8 shadow-sm">
                     <h2 className="text-2xl font-bold text-gray-800">Selamat datang, Budi Santoso!</h2>
 
                     <div className="flex items-center space-x-3">
-                        <a href="/admin/profileAdmin" className="flex cursor-pointer items-center rounded-full bg-saintara-yellow px-4 py-2 shadow-md transition-all duration-200 hover:shadow-lg">
+                        <a href="/instansi/profileInstansi" className="flex cursor-pointer items-center rounded-full bg-saintara-yellow px-4 py-2 shadow-md transition-all duration-200 hover:shadow-lg">
                             <div className="mr-2 h-9 w-9 overflow-hidden rounded-full">
                                 <img src="https://via.placeholder.com/150/FBBF24/000000?text=BS" alt="Avatar" className="h-full w-full object-cover" />
                             </div>
@@ -112,7 +96,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </button>
                     </div>
                 </header>
-                {/* === KONTEN HALAMAN === */}
+
+                {/* === KONTEN DINAMIS (Children) === */}
                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-8">{children}</main>
             </div>
         </div>

@@ -14,45 +14,25 @@ export default function Finance() {
             {/* Summary Cards */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
-                    <p className="text-sm font-medium text-green-600">
-                        Total Pemasukan:
-                    </p>
-                    <h3 className="mt-1 text-3xl font-bold text-green-600">
-                        Rp125.600.000
-                    </h3>
+                    <p className="text-sm font-medium text-green-600">Total Pemasukan:</p>
+                    <h3 className="mt-1 text-3xl font-bold text-green-600">Rp125.600.000</h3>
                 </div>
                 <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6">
-                    <p className="text-sm font-medium text-blue-600">
-                        Transaksi Bulan ini:
-                    </p>
-                    <h3 className="mt-1 text-3xl font-bold text-blue-600">
-                        320
-                    </h3>
+                    <p className="text-sm font-medium text-blue-600">Transaksi Bulan ini:</p>
+                    <h3 className="mt-1 text-3xl font-bold text-blue-600">320</h3>
                 </div>
             </div>
 
             {/* Filters */}
             <div className="flex flex-col items-center gap-4 rounded-2xl bg-gray-50 p-4 md:flex-row">
                 <div className="relative w-full md:w-1/2">
-                    <input
-                        type="text"
-                        placeholder="Cari..."
-                        className="w-full rounded-full border-none bg-gray-100 py-2 pr-4 pl-10 focus:ring-2 focus:ring-yellow-400"
-                    />
+                    <input type="text" placeholder="Cari..." className="w-full rounded-full border-none bg-gray-100 py-2 pr-4 pl-10 focus:ring-2 focus:ring-yellow-400" />
                     <HiSearch className="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 </div>
                 <div className="flex w-full items-center gap-2 md:w-auto">
-                    <span className="font-bold whitespace-nowrap text-gray-700">
-                        Filter Tanggal
-                    </span>
-                    <input
-                        type="date"
-                        className="w-full rounded-lg border-none bg-gray-200 px-4 py-2 text-gray-600"
-                    />
-                    <input
-                        type="date"
-                        className="w-full rounded-lg border-none bg-gray-200 px-4 py-2 text-gray-600"
-                    />
+                    <span className="font-bold whitespace-nowrap text-gray-700">Filter Tanggal</span>
+                    <input type="date" className="w-full rounded-lg border-none bg-gray-200 px-4 py-2 text-gray-600" />
+                    <input type="date" className="w-full rounded-lg border-none bg-gray-200 px-4 py-2 text-gray-600" />
                 </div>
             </div>
 
@@ -61,24 +41,12 @@ export default function Finance() {
                 <table className="w-full min-w-[800px]">
                     <thead>
                         <tr className="bg-yellow-400 text-gray-900">
-                            <th className="rounded-l-xl px-6 py-4 text-left font-bold">
-                                ID TRANSAKSI
-                            </th>
-                            <th className="px-6 py-4 text-left font-bold">
-                                TANGGAL
-                            </th>
-                            <th className="px-6 py-4 text-left font-bold">
-                                SUMBER DANA
-                            </th>
-                            <th className="px-6 py-4 text-left font-bold">
-                                KETERANGAN
-                            </th>
-                            <th className="px-6 py-4 text-left font-bold">
-                                JUMLAH
-                            </th>
-                            <th className="rounded-r-xl px-6 py-4 text-center font-bold">
-                                AKSI
-                            </th>
+                            <th className="rounded-l-xl px-6 py-4 text-left font-bold">ID TRANSAKSI</th>
+                            <th className="px-6 py-4 text-left font-bold">TANGGAL</th>
+                            <th className="px-6 py-4 text-left font-bold">SUMBER DANA</th>
+                            <th className="px-6 py-4 text-left font-bold">KETERANGAN</th>
+                            <th className="px-6 py-4 text-left font-bold">JUMLAH</th>
+                            <th className="rounded-r-xl px-6 py-4 text-center font-bold">AKSI</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white font-semibold text-gray-800">
@@ -86,14 +54,10 @@ export default function Finance() {
                             <td className="px-6 py-5">INV251005001</td>
                             <td className="px-6 py-5">5 Oktober 2025</td>
                             <td className="px-6 py-5">QRIS</td>
-                            <td className="px-6 py-5">
-                                Pembelian token personal
-                            </td>
+                            <td className="px-6 py-5">Pembelian token personal</td>
                             <td className="px-6 py-5">Rp150.000</td>
                             <td className="px-6 py-5 text-center">
-                                <button className="font-bold text-gray-900 hover:text-yellow-600">
-                                    Edit
-                                </button>
+                                <button className="font-bold text-gray-900 hover:text-yellow-600">Edit</button>
                             </td>
                         </tr>
                     </tbody>
@@ -110,31 +74,19 @@ export default function Finance() {
             {/* Summary Cards */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
-                    <p className="text-sm font-medium text-red-600">
-                        Total Pengeluaran:
-                    </p>
-                    <h3 className="mt-1 text-3xl font-bold text-red-600">
-                        Rp30.540.000
-                    </h3>
+                    <p className="text-sm font-medium text-red-600">Total Pengeluaran:</p>
+                    <h3 className="mt-1 text-3xl font-bold text-red-600">Rp30.540.000</h3>
                 </div>
                 <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
-                    <p className="text-sm font-medium text-green-600">
-                        Saldo Akhir:
-                    </p>
-                    <h3 className="mt-1 text-3xl font-bold text-green-600">
-                        Rp95.060.000
-                    </h3>
+                    <p className="text-sm font-medium text-green-600">Saldo Akhir:</p>
+                    <h3 className="mt-1 text-3xl font-bold text-green-600">Rp95.060.000</h3>
                 </div>
             </div>
 
             {/* Actions */}
             <div className="flex flex-col items-center justify-between gap-4 rounded-2xl bg-gray-50 p-2 md:flex-row">
                 <div className="relative ml-2 w-full md:w-1/2">
-                    <input
-                        type="text"
-                        placeholder="Cari..."
-                        className="w-full rounded-full border-none bg-gray-100 py-3 pr-4 pl-10 focus:ring-2 focus:ring-yellow-400"
-                    />
+                    <input type="text" placeholder="Cari..." className="w-full rounded-full border-none bg-gray-100 py-3 pr-4 pl-10 focus:ring-2 focus:ring-yellow-400" />
                     <HiSearch className="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 </div>
                 <button className="flex items-center gap-2 rounded-full bg-yellow-400 px-6 py-3 font-bold text-gray-900 shadow-md transition-all hover:bg-yellow-500">
@@ -148,24 +100,12 @@ export default function Finance() {
                 <table className="w-full min-w-[800px]">
                     <thead>
                         <tr className="bg-yellow-400 text-gray-900">
-                            <th className="rounded-l-xl px-6 py-4 text-left font-bold">
-                                ID TRANSAKSI
-                            </th>
-                            <th className="px-6 py-4 text-left font-bold">
-                                TANGGAL
-                            </th>
-                            <th className="px-6 py-4 text-left font-bold">
-                                JENIS
-                            </th>
-                            <th className="px-6 py-4 text-left font-bold">
-                                KETERANGAN
-                            </th>
-                            <th className="px-6 py-4 text-left font-bold">
-                                JUMLAH
-                            </th>
-                            <th className="rounded-r-xl px-6 py-4 text-center font-bold">
-                                AKSI
-                            </th>
+                            <th className="rounded-l-xl px-6 py-4 text-left font-bold">ID TRANSAKSI</th>
+                            <th className="px-6 py-4 text-left font-bold">TANGGAL</th>
+                            <th className="px-6 py-4 text-left font-bold">JENIS</th>
+                            <th className="px-6 py-4 text-left font-bold">KETERANGAN</th>
+                            <th className="px-6 py-4 text-left font-bold">JUMLAH</th>
+                            <th className="rounded-r-xl px-6 py-4 text-center font-bold">AKSI</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white font-semibold text-gray-800">
@@ -173,14 +113,10 @@ export default function Finance() {
                             <td className="px-6 py-5">EXP251010001</td>
                             <td className="px-6 py-5">10 Oktober 2025</td>
                             <td className="px-6 py-5">Gaji Karyawan</td>
-                            <td className="px-6 py-5">
-                                Pembayaran gaji karyawan bulan Oktober
-                            </td>
+                            <td className="px-6 py-5">Pembayaran gaji karyawan bulan Oktober</td>
                             <td className="px-6 py-5">Rp10.000.000</td>
                             <td className="px-6 py-5 text-center">
-                                <button className="font-bold text-gray-900 hover:text-yellow-600">
-                                    Edit
-                                </button>
+                                <button className="font-bold text-gray-900 hover:text-yellow-600">Edit</button>
                             </td>
                         </tr>
                     </tbody>
@@ -197,47 +133,28 @@ export default function Finance() {
             {/* Summary Cards */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
-                    <p className="text-xs font-medium text-green-600">
-                        Total Komisi Bulan ini:
-                    </p>
-                    <h3 className="mt-1 text-2xl font-bold text-green-600">
-                        Rp4.500.000
-                    </h3>
+                    <p className="text-xs font-medium text-green-600">Total Komisi Bulan ini:</p>
+                    <h3 className="mt-1 text-2xl font-bold text-green-600">Rp4.500.000</h3>
                 </div>
                 <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6">
-                    <p className="text-xs font-medium text-blue-600">
-                        Komisi Belum dibayar:
-                    </p>
-                    <h3 className="mt-1 text-2xl font-bold text-blue-600">
-                        Rp1.200.000
-                    </h3>
+                    <p className="text-xs font-medium text-blue-600">Komisi Belum dibayar:</p>
+                    <h3 className="mt-1 text-2xl font-bold text-blue-600">Rp1.200.000</h3>
                 </div>
                 <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
-                    <p className="text-xs font-medium text-red-600">
-                        Pembatalan Komisi:
-                    </p>
-                    <h3 className="mt-1 text-2xl font-bold text-red-600">
-                        Rp150.000
-                    </h3>
+                    <p className="text-xs font-medium text-red-600">Pembatalan Komisi:</p>
+                    <h3 className="mt-1 text-2xl font-bold text-red-600">Rp150.000</h3>
                 </div>
             </div>
 
             {/* Filters */}
             <div className="flex flex-col items-center gap-4 rounded-2xl bg-gray-50 p-4 md:flex-row">
                 <div className="relative w-full md:w-1/2">
-                    <input
-                        type="text"
-                        placeholder="Cari..."
-                        className="w-full rounded-full border-none bg-gray-100 py-2 pr-4 pl-10 focus:ring-2 focus:ring-yellow-400"
-                    />
+                    <input type="text" placeholder="Cari..." className="w-full rounded-full border-none bg-gray-100 py-2 pr-4 pl-10 focus:ring-2 focus:ring-yellow-400" />
                     <HiSearch className="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 </div>
                 <div className="flex w-full items-center gap-2 md:w-auto">
-                    <span className="text-sm font-bold whitespace-nowrap text-gray-700">
-                        Filter Tanggal
-                    </span>
-                    <div className="h-10 w-32 rounded-lg bg-gray-200"></div>{' '}
-                    {/* Dummy Date Picker style */}
+                    <span className="text-sm font-bold whitespace-nowrap text-gray-700">Filter Tanggal</span>
+                    <div className="h-10 w-32 rounded-lg bg-gray-200"></div> {/* Dummy Date Picker style */}
                     <div className="h-10 w-32 rounded-lg bg-gray-200"></div>
                 </div>
             </div>
@@ -247,73 +164,43 @@ export default function Finance() {
                 <table className="w-full min-w-[800px]">
                     <thead>
                         <tr className="bg-yellow-400 text-gray-900">
-                            <th className="rounded-l-xl px-6 py-4 text-left font-bold">
-                                NAMA AGEN
-                            </th>
-                            <th className="px-6 py-4 text-left font-bold">
-                                TANGGAL
-                            </th>
-                            <th className="px-6 py-4 text-left font-bold">
-                                KETERANGAN
-                            </th>
-                            <th className="px-6 py-4 text-left font-bold">
-                                JUMLAH
-                            </th>
-                            <th className="px-6 py-4 text-left font-bold">
-                                STATUS
-                            </th>
-                            <th className="rounded-r-xl px-6 py-4 text-center font-bold">
-                                AKSI
-                            </th>
+                            <th className="rounded-l-xl px-6 py-4 text-left font-bold">NAMA AGEN</th>
+                            <th className="px-6 py-4 text-left font-bold">TANGGAL</th>
+                            <th className="px-6 py-4 text-left font-bold">KETERANGAN</th>
+                            <th className="px-6 py-4 text-left font-bold">JUMLAH</th>
+                            <th className="px-6 py-4 text-left font-bold">STATUS</th>
+                            <th className="rounded-r-xl px-6 py-4 text-center font-bold">AKSI</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white font-semibold text-gray-800">
                         <tr className="border-b border-gray-100">
                             <td className="px-6 py-5">Aqtar Sumaktar</td>
                             <td className="px-6 py-5">5 Oktober 2025</td>
-                            <td className="px-6 py-5">
-                                Penjualan 20 token (Paket Sekolah)
-                            </td>
-                            <td className="px-6 py-5 text-green-600">
-                                + Rp500.000,-
-                            </td>
+                            <td className="px-6 py-5">Penjualan 20 token (Paket Sekolah)</td>
+                            <td className="px-6 py-5 text-green-600">+ Rp500.000,-</td>
                             <td className="px-6 py-5">Sudah dibayar</td>
                             <td className="px-6 py-5 text-center">
-                                <button className="text-sm font-bold text-gray-900 hover:text-yellow-600">
-                                    Lihat Detail
-                                </button>
+                                <button className="text-sm font-bold text-gray-900 hover:text-yellow-600">Lihat Detail</button>
                             </td>
                         </tr>
                         <tr className="border-b border-gray-100">
                             <td className="px-6 py-5">Ahmad Sahroni</td>
                             <td className="px-6 py-5">4 Oktober 2025</td>
-                            <td className="px-6 py-5">
-                                Penjualan 5 token (Paket Personal)
-                            </td>
-                            <td className="px-6 py-5 text-green-600">
-                                + Rp125.000,-
-                            </td>
+                            <td className="px-6 py-5">Penjualan 5 token (Paket Personal)</td>
+                            <td className="px-6 py-5 text-green-600">+ Rp125.000,-</td>
                             <td className="px-6 py-5">Belum dibayar</td>
                             <td className="px-6 py-5 text-center">
-                                <button className="text-sm font-bold text-gray-900 hover:text-yellow-600">
-                                    Lihat Detail
-                                </button>
+                                <button className="text-sm font-bold text-gray-900 hover:text-yellow-600">Lihat Detail</button>
                             </td>
                         </tr>
                         <tr className="border-b border-gray-100">
                             <td className="px-6 py-5">Rina Ilastina</td>
                             <td className="px-6 py-5">3 Oktober 2025</td>
-                            <td className="px-6 py-5">
-                                Pembatalan INV251001005
-                            </td>
-                            <td className="px-6 py-5 text-red-500">
-                                - Rp500.000,-
-                            </td>
+                            <td className="px-6 py-5">Pembatalan INV251001005</td>
+                            <td className="px-6 py-5 text-red-500">- Rp500.000,-</td>
                             <td className="px-6 py-5">Dibatalkan</td>
                             <td className="px-6 py-5 text-center">
-                                <button className="text-sm font-bold text-gray-900 hover:text-yellow-600">
-                                    Lihat Detail
-                                </button>
+                                <button className="text-sm font-bold text-gray-900 hover:text-yellow-600">Lihat Detail</button>
                             </td>
                         </tr>
                     </tbody>
@@ -326,20 +213,11 @@ export default function Finance() {
     // 4. RENDER KONTEN: LAPORAN
     // ==========================================
     const renderLaporan = () => {
-        const months = [
-            { name: 'September 2025' },
-            { name: 'Agustus 2025' },
-            { name: 'Juli 2025' },
-            { name: 'Juni 2025' },
-            { name: 'Mei 2025' },
-            { name: 'April 2025' },
-        ];
+        const months = [{ name: 'September 2025' }, { name: 'Agustus 2025' }, { name: 'Juli 2025' }, { name: 'Juni 2025' }, { name: 'Mei 2025' }, { name: 'April 2025' }];
 
         return (
             <div className="animate-fade-in">
-                <h3 className="mb-6 text-2xl font-bold text-gray-900">
-                    Laporan Keuangan
-                </h3>
+                <h3 className="mb-6 text-2xl font-bold text-gray-900">Laporan Keuangan</h3>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {months.map((m, i) => (
                         <div
@@ -350,9 +228,7 @@ export default function Finance() {
                                 Bulan <br /> {m.name}
                             </h4>
                             <div className="w-full space-y-3">
-                                <button className="w-full rounded-full border-2 border-yellow-400 py-2 font-bold text-gray-900 transition-colors hover:bg-yellow-50">
-                                    Lihat
-                                </button>
+                                <button className="w-full rounded-full border-2 border-yellow-400 py-2 font-bold text-gray-900 transition-colors hover:bg-yellow-50">Lihat</button>
                                 <button className="w-full rounded-full border-2 border-yellow-400 py-2 font-bold text-gray-900 transition-colors hover:bg-yellow-50">
                                     Download
                                 </button>
@@ -365,18 +241,74 @@ export default function Finance() {
     };
 
     // ==========================================
+    // 3. KONTEN: GAJI
+    // ==========================================
+    const renderGaji = () => (
+        <div className="animate-fade-in space-y-6">
+            <h3 className="text-lg font-bold text-gray-900">Penggajian Periode Oktober 2025</h3>
+            <div className="overflow-x-auto rounded-xl border border-gray-200">
+                <table className="w-full min-w-[600px]">
+                    <thead className="bg-gray-100 text-sm text-gray-900 uppercase">
+                        <tr>
+                            <th className="px-4 py-3 text-left font-bold">Nama Anggota</th>
+                            <th className="px-4 py-3 text-left font-bold">Jabatan</th>
+                            <th className="px-4 py-3 text-left font-bold">Gaji Bersih</th>
+                            <th className="px-4 py-3 text-center font-bold">Status</th>
+                            <th className="px-4 py-3 text-center font-bold">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 bg-white text-sm text-gray-800">
+                        <tr>
+                            <td className="px-4 py-3">Budi Santoso</td>
+                            <td className="px-4 py-3">IT Support</td>
+                            <td className="px-4 py-3 font-semibold">Rp10.000.000</td>
+                            <td className="px-4 py-3 text-center">
+                                <span className="rounded-full border border-green-200 bg-green-100 px-3 py-1 text-xs font-bold text-green-700">Sudah Dibayar</span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                                <button className="text-xs font-bold text-yellow-600 hover:underline">Lihat Rincian</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td className="px-4 py-3">WR Supratman</td>
+                            <td className="px-4 py-3">Admin</td>
+                            <td className="px-4 py-3 font-semibold">Rp5.000.000</td>
+                            <td className="px-4 py-3 text-center">
+                                <span className="rounded-full border border-red-200 bg-red-100 px-3 py-1 text-xs font-bold text-red-700">Belum Dibayar</span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                                <button className="text-xs font-bold text-yellow-600 hover:underline">Lihat Rincian</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+
+    // ==========================================
+    // 4. KONTEN: KOMISI (Placeholder)
+    // ==========================================
+    const renderKomisi = () => (
+        <div className="animate-fade-in space-y-6">
+            <h3 className="text-lg font-bold text-gray-900">Komisi Agen Periode Oktober 2025</h3>
+            <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+                <p className="text-gray-500">Belum ada data komisi untuk periode ini.</p>
+            </div>
+        </div>
+    );
+
+    // ==========================================
     // RENDER UTAMA
     // ==========================================
-    const tabs = ['Pemasukan', 'Pengeluaran', 'Transaksi Agen', 'Laporan'];
+    const tabs = ['Pemasukan', 'Pengeluaran', 'Transaksi Agen', 'Laporan', 'Gaji', 'Komisi'];
 
     return (
         <AdminDashboardLayout>
             <Head title="Manajemen Keuangan" />
 
             <div className="space-y-6 font-poppins">
-                <h2 className="text-3xl font-bold text-gray-900">
-                    Manajemen Keuangan
-                </h2>
+                <h2 className="text-3xl font-bold text-blue-900">Manajemen Keuangan</h2>
 
                 {/* Tabs Navigasi */}
                 <div className="flex w-fit flex-wrap gap-4 rounded-[2rem] bg-white p-4 shadow-sm">
@@ -385,9 +317,7 @@ export default function Finance() {
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             className={`rounded-full border px-8 py-3 text-sm font-bold transition-all ${
-                                activeTab === tab
-                                    ? 'border-yellow-400 bg-yellow-400 text-gray-900 shadow-md'
-                                    : 'border-yellow-400 bg-white text-gray-900 hover:bg-yellow-50'
+                                activeTab === tab ? 'border-yellow-400 bg-yellow-400 text-gray-900 shadow-md' : 'border-yellow-400 bg-white text-gray-900 hover:bg-yellow-50'
                             } `}
                         >
                             {tab}
@@ -401,20 +331,16 @@ export default function Finance() {
                     {activeTab === 'Pengeluaran' && renderPengeluaran()}
                     {activeTab === 'Transaksi Agen' && renderTransaksiAgen()}
                     {activeTab === 'Laporan' && renderLaporan()}
+                    {activeTab === 'Gaji' && renderGaji()}
+                    {activeTab === 'Komisi' && renderKomisi()}
 
                     {/* Pagination (Hanya muncul di tab tabel) */}
                     {activeTab !== 'Laporan' && (
                         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-yellow-200 pt-6 md:flex-row">
-                            <p className="text-sm font-bold text-gray-900">
-                                Showing 1-1 of 1000
-                            </p>
+                            <p className="text-sm font-bold text-gray-900">Showing 1-1 of 1000</p>
                             <div className="flex gap-3">
-                                <button className="rounded-full bg-yellow-400 px-6 py-2 font-bold text-gray-900 shadow-sm transition-colors hover:bg-yellow-500">
-                                    Previous
-                                </button>
-                                <button className="rounded-full bg-yellow-400 px-6 py-2 font-bold text-gray-900 shadow-sm transition-colors hover:bg-yellow-500">
-                                    Next
-                                </button>
+                                <button className="rounded-full bg-yellow-400 px-6 py-2 font-bold text-gray-900 shadow-sm transition-colors hover:bg-yellow-500">Previous</button>
+                                <button className="rounded-full bg-yellow-400 px-6 py-2 font-bold text-gray-900 shadow-sm transition-colors hover:bg-yellow-500">Next</button>
                             </div>
                         </div>
                     )}

@@ -6,8 +6,6 @@ export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
-    // Mengambil data user dari props Laravel (Inertia)
-    // 'auth' adalah prop standar yang dikirim Laravel
     const { auth } = usePage().props as any;
     const user = auth.user;
 
@@ -17,17 +15,17 @@ export default function Navbar() {
                 {/* Logo */}
                 <Link href="/" className="flex items-center space-x-3">
                     <img
-                        src="/assets/logo/4.png" // Pastikan file ada di folder public/assets/logo
+                        src="/assets/logo/4.png"
                         alt="Logo Saintara"
                         className="h-8 w-8 object-contain"
                     />
-                    <span className="font-poppins self-center text-xl font-extrabold tracking-wide whitespace-nowrap text-gray-900 uppercase md:text-2xl">
+                    <span className="self-center font-poppins text-xl font-extrabold tracking-wide whitespace-nowrap text-gray-900 uppercase md:text-2xl">
                         SAINTARA
                     </span>
                 </Link>
 
                 {/* Tombol Aksi (Kanan) */}
-                <div className="flex items-center space-x-3 md:order-2">
+                <div className="flex items-center space-x-1 md:order-2">
                     {user ? (
                         <div className="relative">
                             <button
@@ -56,7 +54,7 @@ export default function Navbar() {
                                     </Link>
                                     <Link
                                         href="/logout"
-                                        method="post" // Penting: Logout di Laravel harus method POST
+                                        method="post"
                                         as="button"
                                         className="block w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
                                     >
@@ -67,12 +65,20 @@ export default function Navbar() {
                             )}
                         </div>
                     ) : (
-                        <Link
-                            href="/login"
-                            className="transform rounded-full bg-gray-900 px-6 py-2.5 text-center text-sm font-medium text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:bg-black hover:shadow-xl focus:ring-4 focus:ring-gray-300"
-                        >
-                            MASUK
-                        </Link>
+                        <div className="hidden items-center gap-2 md:flex">
+                            <Link
+                                href="/login"
+                                className="rounded-full border-2 border-gray-900 px-5 py-2 text-sm font-bold text-gray-900 transition-all hover:bg-gray-100 focus:ring-4 focus:ring-gray-200"
+                            >
+                                MASUK
+                            </Link>
+                            <Link
+                                href="/register"
+                                className="rounded-full bg-gray-900 px-5 py-2.5 text-sm font-bold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-black hover:shadow-xl focus:ring-4 focus:ring-gray-300"
+                            >
+                                DAFTAR
+                            </Link>
+                        </div>
                     )}
 
                     {/* Mobile Menu Button */}

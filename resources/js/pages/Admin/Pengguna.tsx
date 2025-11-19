@@ -105,6 +105,8 @@ export default function Users() {
         <AdminDashboardLayout>
             <Head title="Manajemen Pengguna" />
 
+            <h1 className="text-3xl font-bold text-blue-900 mb-6">Pengguna</h1>
+
             <div className="space-y-6 font-poppins">
                 {/* === TAB NAVIGASI === */}
                 <div className="flex w-fit flex-wrap gap-4 rounded-[2rem] bg-white p-4 shadow-sm">

@@ -205,9 +205,6 @@ export default function Calendar() {
                             >
                                 Today
                             </button>
-                            <button className="transform rounded-lg bg-saintara-yellow px-4 py-2 text-sm font-semibold text-white transition-all duration-300 hover:scale-105 hover:bg-saintara-black focus:ring-4 focus:ring-yellow-300">
-                                + Add Event
-                            </button>
                         </div>
                     </div>
 
