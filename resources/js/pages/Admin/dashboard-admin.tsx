@@ -2,15 +2,18 @@ import AdminDashboardLayout from '@/layouts/dashboardLayoutAdmin'; // Pastikan p
 import { Head } from '@inertiajs/react';
 import { HiArrowSmRight, HiChatAlt2, HiCurrencyDollar, HiDesktopComputer, HiMicrophone, HiUserGroup, HiUsers } from 'react-icons/hi';
 import { HiWrench } from 'react-icons/hi2';
+import { ProtectedRoute } from '@/hooks/useAuth';
+import { AdminLayout } from '@/components/AdminLayout';
 
 // ...rest of code...
 
 export default function Dashboard() {
     return (
-        <AdminDashboardLayout>
-            <Head title="Dashboard Admin" />
+        <ProtectedRoute requiredRoles={[1, 2]}>
+            <AdminLayout>
+                <Head title="Dashboard Admin" />
 
-            <div className="space-y-6">
+                <div className="space-y-6">
                 {/* ======================= */}
                 {/* BAGIAN 1: KARTU ATAS */}
                 {/* ======================= */}
@@ -232,7 +235,8 @@ export default function Dashboard() {
                         </div>
                     </div>
                 </div>
-            </div>
-        </AdminDashboardLayout>
+                </div>
+            </AdminLayout>
+        </ProtectedRoute>
     );
 }
