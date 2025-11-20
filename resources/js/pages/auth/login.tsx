@@ -36,22 +36,32 @@ export default function Login() {
         setErrors({}); // Reset error sebelum request
 
         try {
-            // 1. Tembak ke API Laravel yang sudah kita buat
-            // Pastikan URL sesuai dengan port Laravel (biasanya 8000)
             const response = await axios.post('http://127.0.0.1:8000/api/login', {
                 email: values.email,
                 password: values.password,
             });
 
-            // 2. Jika sukses, simpan Token & Data User
             const token = response.data.access_token;
             const user = response.data.user;
+            const roleId = response.data.role_id; // Ambil role_id dari response
 
             localStorage.setItem('token', token);
             localStorage.setItem('user_data', JSON.stringify(user));
 
-            // 3. Redirect ke Dashboard (Kita pakai window.location agar state refresh penuh)
-            window.location.href = '/admin/dashboardAdmin';
+            // --- LOGIKA REDIRECT BERDASARKAN ROLE ---
+            if (roleId === 1 || roleId === 2) {
+                // Super Admin & Admin -> Dashboard Admin
+                window.location.href = '/admin/dashboardAdmin';
+            } else if (roleId === 3) {
+                // Customer -> Homepage atau Dashboard User
+                window.location.href = '/personal/dashboardPersonal';
+            } else if (roleId === 4) {
+                // Instansi -> Dashboard Instansi
+                window.location.href = '/instansi/dashboardInstansi';
+            } else {
+                // Default
+                window.location.href = '/';
+            }
         } catch (err: any) {
             // 4. Tangani Error
             if (err.response && err.response.status === 422) {

@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use App\Models\Admin; // Pakai model Admin
 use Illuminate\Support\Facades\Hash;
+use App\Models\Admin;
+use App\Models\Customer;
+use App\Models\Instansi; 
 
 class AuthController extends Controller
 {
@@ -16,36 +17,50 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        // 1. Cek User berdasarkan Email
-        $admin = Admin::where('email', $request->email)->first();
+        $user = null;
+        $guard = '';
 
-        // 2. Cek apakah user ada DAN password cocok
-        if (!$admin || !Hash::check($request->password, $admin->password)) {
+        // 1. Cek di tabel ADMINS
+        $user = Admin::where('email', $request->email)->first();
+        if ($user) {
+            $guard = 'admin';
+        }
+
+        // 2. Jika tidak ketemu, cek di tabel CUSTOMERS
+        if (!$user) {
+            $user = Customer::where('email', $request->email)->first();
+            if ($user)
+                $guard = 'customer';
+        }
+
+        // 3. Jika tidak ketemu, cek di tabel INSTANSI
+        if (!$user) {
+            $user = Instansi::where('email', $request->email)->first(); // Sesuaikan nama model
+            if ($user)
+                $guard = 'instansi';
+        }
+
+        // 4. Validasi Password
+        if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'message' => 'Email atau Password salah'
             ], 401);
         }
 
-        // 3. (Opsional) Cek status akun jika perlu
-        if ($admin->status_akun !== 'aktif') {
-            return response()->json(['message' => 'Akun Anda tidak aktif'], 403);
-        }
-
-        // 4. Buat Token
-        // Parameter pertama createToken bebas string apa saja
-        $token = $admin->createToken('auth_token')->plainTextToken;
+        // 5. Buat Token
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => 'Login sukses',
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => $admin
+            'user' => $user,
+            'role_id' => $user->role_id, // Kirim role_id untuk frontend
         ]);
     }
 
     public function logout(Request $request)
     {
-        // Hapus token yang sedang digunakan
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Logout berhasil']);
     }

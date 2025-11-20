@@ -137,7 +137,7 @@ Route::prefix('instansi')->group(function () {
 
     // 1. Dashboard
     Route::get('/dashboardInstansi', function () {
-        return Inertia::render('Instansi/dashboard');
+        return Inertia::render('Instansi/Dashboard');
     })->name('instansi.dashboard');
 
     // 2. Profil Organisasi

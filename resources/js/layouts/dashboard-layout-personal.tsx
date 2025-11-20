@@ -1,39 +1,14 @@
 import { Link, usePage } from '@inertiajs/react';
-import { ReactNode } from 'react';
-// 1. Menggunakan Icon Solid (Hi)
-import {
-    HiBell,
-    HiCog, // Mengganti HiClipboard untuk Daftar Tes
-    HiCreditCard, // Mengganti HiShoppingCart untuk Transaksi & Token
-    HiDocumentReport, // Mengganti HiUser untuk Profil
-    HiDocumentText, // Mengganti HiChat untuk Bantuan
-    HiGift,
-    HiHome,
-    HiLogout, // Mengganti HiCheckCircle untuk Hasil Tes
-    HiSupport,
-    HiUserCircle,
-} from 'react-icons/hi';
+import axios from 'axios';
+import { ReactNode, useEffect, useState } from 'react';
+import { HiBell, HiCog, HiCreditCard, HiDocumentReport, HiDocumentText, HiGift, HiHome, HiLogout, HiSupport, HiUserCircle } from 'react-icons/hi';
 
-// Mock Data untuk Header (disesuaikan dengan style admin)
-const user = {
-    name: 'Budi Santoso',
-    initial: 'BS', // Inisial untuk avatar
-};
-
-// Daftar Menu (Disesuaikan untuk Personal/User)
+// Daftar Menu
 const menuItems = [
     { name: 'Beranda', href: '/personal/dashboardPersonal', icon: HiHome },
     { name: 'Profil', href: '/personal/profilePersonal', icon: HiUserCircle },
-    {
-        name: 'Daftar Tes Karakter',
-        href: '/personal/daftarTesPersonal',
-        icon: HiDocumentText,
-    },
-    {
-        name: 'Transaksi & Token',
-        href: '/personal/transaksiTokenPersonal',
-        icon: HiCreditCard,
-    },
+    { name: 'Daftar Tes Karakter', href: '/personal/daftarTesPersonal', icon: HiDocumentText },
+    { name: 'Transaksi & Token', href: '/personal/transaksiTokenPersonal', icon: HiCreditCard },
     { name: 'Hasil Tes', href: '/personal/hasilTesPersonal', icon: HiDocumentReport },
     { name: 'Hadiah & Donasi', href: '/personal/hadiahDonasiPersonal', icon: HiGift },
     { name: 'Bantuan', href: '/personal/bantuanPersonal', icon: HiSupport },
@@ -41,22 +16,72 @@ const menuItems = [
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-    const { url } = usePage(); // Hook untuk cek URL aktif
-    const logout = () => console.log('Logout logic placeholder'); // Logout placeholder
+    const { url } = usePage();
+
+    // 1. State untuk menyimpan data user
+    const [user, setUser] = useState({
+        name: 'Loading...',
+        email: '',
+        foto: '',
+    });
+
+    // 2. Ambil data dari LocalStorage saat komponen dimuat
+    useEffect(() => {
+        const userDataStr = localStorage.getItem('user_data');
+        if (userDataStr) {
+            try {
+                const parsedUser = JSON.parse(userDataStr);
+                // Logika penyesuaian nama kolom dari database (nama_lengkap / nama_customer / name)
+                setUser({
+                    name: parsedUser.nama_lengkap || parsedUser.nama_customer || parsedUser.name || 'User',
+                    email: parsedUser.email || '',
+                    foto: parsedUser.foto || '',
+                });
+            } catch (error) {
+                console.error('Gagal memuat data user', error);
+            }
+        }
+    }, []);
+
+    // 3. Fungsi Logout yang Benar
+    const logout = async () => {
+        try {
+            const token = localStorage.getItem('token');
+
+            // Request ke backend untuk hapus token database
+            if (token) {
+                await axios.post(
+                    'http://127.0.0.1:8000/api/logout',
+                    {},
+                    {
+                        headers: { Authorization: `Bearer ${token}` },
+                    },
+                );
+            }
+        } catch (error) {
+            console.error('Gagal logout server', error);
+        } finally {
+            // Hapus data lokal & redirect
+            localStorage.removeItem('token');
+            localStorage.removeItem('user_data');
+            window.location.href = '/login';
+        }
+    };
 
     return (
         <div className="flex min-h-screen bg-gray-50 font-poppins">
-            {/* === SIDEBAR (Tema Hitam/Kuning) === */}
-            <aside className="flex w-64 flex-shrink-0 flex-col bg-saintara-black text-white transition-all duration-300">
+            {/* === SIDEBAR === */}
+            <aside className="flex w-64 flex-shrink-0 flex-col bg-gray-900 text-white transition-all duration-300">
                 {/* Logo */}
                 <div className="flex h-20 items-center justify-center border-b border-gray-700">
                     <Link href="/" className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-white"></div> {/* Logo Placeholder */}
-                        <h1 className="cursor-pointer text-2xl font-bold tracking-wider text-white transition-colors hover:text-saintara-yellow">SAINTARA</h1>
+                        {/* Ganti src dengan path logo Anda */}
+                        <img src="/assets/logo/4.png" alt="Logo" className="h-8 w-8 rounded-full bg-white object-contain" />
+                        <h1 className="cursor-pointer text-2xl font-bold tracking-wider text-white transition-colors hover:text-yellow-400">SAINTARA</h1>
                     </Link>
                 </div>
 
-                {/* Menu Navigasi (Tema Hitam/Kuning) */}
+                {/* Menu Navigasi */}
                 <nav className="flex-1 space-y-2 px-4 py-6">
                     {menuItems.map((item) => {
                         const isActive = url.startsWith(item.href);
@@ -64,20 +89,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <Link
                                 key={item.name}
                                 href={item.href}
-                                // ClassName disesuaikan dengan tema admin (hitam/kuning)
                                 className={`group flex items-center rounded-lg px-4 py-2.5 transition-all duration-300 ${
                                     isActive
-                                        ? 'bg-saintara-yellow font-bold text-gray-900 shadow-md' // Style Aktif
+                                        ? 'bg-yellow-400 font-bold text-gray-900 shadow-md' // Style Aktif
                                         : 'text-gray-300 hover:bg-gray-700 hover:text-white' // Style Normal
                                 }`}
                             >
-                                <item.icon
-                                    className={`mr-3 h-6 w-6 transition-colors ${
-                                        isActive
-                                            ? 'text-gray-900' // Ikon Aktif
-                                            : 'text-gray-400 group-hover:text-saintara-yellow' // Ikon Normal
-                                    }`}
-                                />
+                                <item.icon className={`mr-3 h-6 w-6 transition-colors ${isActive ? 'text-gray-900' : 'text-gray-400 group-hover:text-yellow-400'}`} />
                                 {item.name}
                             </Link>
                         );
@@ -86,40 +104,39 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                 {/* Logout Button */}
                 <div className="flex-shrink-0 border-t border-gray-700 px-4 py-4">
-                    <button onClick={logout} className="flex w-full items-center rounded-lg px-4 py-2.5 text-gray-300 transition-all duration-300 hover:bg-gray-700 hover:text-white">
+                    <button onClick={logout} className="flex w-full items-center rounded-lg px-4 py-2.5 text-gray-300 transition-all duration-300 hover:bg-red-600 hover:text-white">
                         <HiLogout className="mr-3 h-6 w-6" /> Logout
                     </button>
                 </div>
             </aside>
 
-            {/* === KONTEN UTAMA (Kanan) === */}
+            {/* === KONTEN UTAMA === */}
             <div className="flex flex-1 flex-col overflow-hidden">
+                {/* Header */}
                 <header className="flex h-20 items-center justify-between border-b border-gray-100 bg-white px-8 shadow-sm">
-                    <h2 className="text-2xl font-bold text-gray-800">Selamat datang, Budi Santoso!</h2>
+                    {/* Nama User Dinamis */}
+                    <h2 className="text-2xl font-bold text-gray-800">Selamat datang, {user.name}!</h2>
 
                     <div className="flex items-center space-x-3">
-                        <a href='/personal/profilePersonal' className="flex cursor-pointer items-center rounded-full bg-saintara-yellow px-4 py-2 shadow-md transition-all duration-200 hover:shadow-lg">
-                            <div className="mr-2 h-9 w-9 overflow-hidden rounded-full">
-                                <img
-                                    src="https://via.placeholder.com/150/FBBF24/000000?text=BS"
-                                    alt="Avatar"
-                                    className="h-full w-full object-cover"
-                                />
+                        <Link href="/personal/profilePersonal" className="flex cursor-pointer items-center rounded-full bg-yellow-400 px-4 py-2 shadow-md transition-all duration-200 hover:shadow-lg">
+                            <div className="mr-2 h-9 w-9 overflow-hidden rounded-full bg-gray-200">
+                                {user.foto ? <img src={user.foto} alt="Avatar" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center font-bold text-gray-600">{user.name.charAt(0)}</div>}
                             </div>
 
                             <div className="text-sm">
-                                <p className="leading-none font-bold text-gray-900">Budi Santoso</p>
-                                <p className="text-xs leading-none text-gray-700">email@example.com</p>
+                                <p className="leading-none font-bold text-gray-900">{user.name}</p>
+                                <p className="text-xs leading-none text-gray-700">{user.email}</p>
                             </div>
-                        </a>
+                        </Link>
 
-                        <button type="button" className="relative flex h-11 w-11 items-center justify-center rounded-full bg-saintara-yellow text-gray-900 shadow-md transition-colors hover:bg-yellow-500">
-                            <HiBell className="h-6 w-6" /> 
+                        <button type="button" className="relative flex h-11 w-11 items-center justify-center rounded-full bg-yellow-400 text-gray-900 shadow-md transition-colors hover:bg-yellow-500">
+                            <HiBell className="h-6 w-6" />
                             <span className="absolute top-1 right-1 h-3 w-3 rounded-full border-2 border-white bg-red-600"></span>
                         </button>
                     </div>
                 </header>
 
+                {/* Main Content */}
                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-8">{children}</main>
             </div>
         </div>

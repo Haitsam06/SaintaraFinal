@@ -39,19 +39,37 @@ export default function Navbar() {
                 <div className="flex items-center space-x-1 md:order-2">
                     {/* --- LOGIKA TAMPILAN LOGIN / BELUM --- */}
                     {user ? (
-                        // === JIKA SUDAH LOGIN: TAMPILKAN ICON PROFILE ===
-                        <Link href="/admin/dashboardAdmin" className="group flex items-center gap-3 rounded-full bg-gray-50 py-1 pr-4 pl-2 transition-all hover:bg-yellow-50 hover:shadow-md" title="Ke Dashboard Admin">
-                            {/* Foto Profile / Icon Default */}
-                            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-yellow-400 bg-yellow-400 shadow-sm">
-                                {user.foto ? <img src={user.foto} alt="User" className="h-full w-full object-cover" /> : <HiUser className="h-6 w-6 text-white" />}
-                            </div>
+                        // --- LOGIKA MENENTUKAN LINK & NAMA ---
+                        (() => {
+                            // 1. Tentukan Link Tujuan berdasarkan Role ID
+                            let dashboardLink = '/';
+                            if (user.role_id === 1 || user.role_id === 2) {
+                                dashboardLink = '/admin/dashboardAdmin';
+                            } else if (user.role_id === 3) {
+                                dashboardLink = '/personal/dashboardPersonal'; // Ganti dengan route dashboard customer Anda
+                            } else if (user.role_id === 4) {
+                                dashboardLink = '/instansi/dashboardInstansi'; // Ganti dengan route dashboard instansi Anda
+                            }
 
-                            {/* Nama User (Hidden di HP biar rapi, muncul di Desktop) */}
-                            <div className="hidden flex-col text-left md:flex">
-                                <span className="text-xs font-bold text-gray-900 group-hover:text-yellow-600">Halo, {user.nama_admin || user.name || 'Admin'}</span>
-                                <span className="text-[10px] text-gray-500">Dashboard</span>
-                            </div>
-                        </Link>
+                            // 2. Tentukan Nama Tampilan (Cek semua kemungkinan kolom nama)
+                            const displayName = user.nama_admin || user.nama_customer || user.nama_lengkap || user.nama_instansi || user.name || 'User';
+
+                            return (
+                                // === JIKA SUDAH LOGIN: TAMPILKAN ICON PROFILE ===
+                                <Link href={dashboardLink} className="group flex items-center gap-3 rounded-full bg-gray-50 py-1 pr-4 pl-2 transition-all hover:bg-yellow-50 hover:shadow-md" title="Ke Dashboard">
+                                    {/* Foto Profile / Icon Default */}
+                                    <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-yellow-400 bg-yellow-400 shadow-sm">
+                                        {user.foto ? <img src={user.foto} alt="User" className="h-full w-full object-cover" /> : <HiUser className="h-6 w-6 text-white" />}
+                                    </div>
+
+                                    {/* Nama User (Hidden di HP biar rapi, muncul di Desktop) */}
+                                    <div className="hidden flex-col text-left md:flex">
+                                        <span className="text-xs font-bold text-gray-900 group-hover:text-yellow-600">Halo, {displayName}</span>
+                                        <span className="text-[10px] text-gray-500">Dashboard</span>
+                                    </div>
+                                </Link>
+                            );
+                        })()
                     ) : (
                         // === JIKA BELUM LOGIN: TAMPILKAN TOMBOL MASUK & DAFTAR ===
                         <div className="hidden items-center gap-2 md:flex">
