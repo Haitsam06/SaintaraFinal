@@ -89,7 +89,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {/* 4. TAMPILKAN NAMA DINAMIS */}
                     <h2 className="text-2xl font-bold text-gray-800">Selamat datang, {user.name}!</h2>
 
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2">
                         <a href="/admin/profileAdmin" className="flex cursor-pointer items-center rounded-full bg-yellow-400 px-4 py-2 shadow-md transition-all duration-200 hover:shadow-lg">
                             <div className="mr-2 h-9 w-9 overflow-hidden rounded-full bg-white">
                                 {/* Tampilkan foto jika ada, jika tidak pakai placeholder inisial */}
@@ -102,7 +102,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             </div>
                         </a>
 
-                        <button type="button" className="relative flex h-11 w-11 items-center justify-center rounded-full bg-yellow-400 text-gray-900 shadow-md transition-colors hover:bg-yellow-500">
+                        <button type="button" className="relative flex h-13 w-13 items-center justify-center rounded-full bg-yellow-400 text-gray-900 shadow-md transition-colors hover:bg-yellow-500">
                             <HiBell className="h-6 w-6" />
                             <span className="absolute top-1 right-1 h-3 w-3 rounded-full border-2 border-white bg-red-600"></span>
                         </button>

@@ -4,6 +4,7 @@ import { Head } from '@inertiajs/react';
 import { ChangeEvent, FormEvent, useState } from 'react';
 
 export default function Profile() {
+
     // State untuk mengelola input form
     const [formData, setFormData] = useState({
         fullName: 'Budi Santoso',
