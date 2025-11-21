@@ -128,6 +128,11 @@ class AuthController extends Controller
             ], 401);
         }
 
+        \Auth::guard($guard)->login($user);
+
+        \Log::info('Guard dipakai: ' . $guard);
+
+
         // 5. Buat Token
         $token = $user->createToken('auth_token')->plainTextToken;
 

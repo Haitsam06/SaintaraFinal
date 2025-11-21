@@ -2,10 +2,11 @@
 
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Personal\ProfilePersonalController;
 use Illuminate\Foundation\Application;
 
 // --- IMPORT CONTROLLER BARU DISINI ---
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AuthController; // Pastikan nama controller sesuai dengan file Anda
 
 /*
@@ -81,6 +82,8 @@ Route::prefix('personal')->group(function () {
         return Inertia::render('Personal/form-tes-personal');
     })->name('personal.form-tes');
 
+    Route::post('/update-profile-personal', [ProfilePersonalController::class, 'update']);
+
 });
 
 // --- GROUP ADMIN ---
@@ -124,7 +127,7 @@ Route::prefix('admin')->group(function () {
 Route::prefix('instansi')->group(function () {
 
     Route::get('/dashboardInstansi', function () {
-        return Inertia::render('Instansi/dashboard');
+        return Inertia::render('Instansi/Dashboard');
     })->name('instansi.dashboard');
 
     Route::get('/profilInstansi', function () {
@@ -158,6 +161,7 @@ Route::prefix('instansi')->group(function () {
     Route::get('/formTesInstansi', function () {
         return Inertia::render('Instansi/form-tes-instansi');
     })->name('instansi.form-tes-instansi');
+    
 
 });
 

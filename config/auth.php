@@ -40,6 +40,11 @@ return [
             'driver' => 'session',
             'provider' => 'users', // <--- Ini mengacu ke konfigurasi poin 1
         ],
+
+            'customer' => [
+        'driver' => 'session',
+        'provider' => 'customers',
+        ],
     ],
 
     /*
@@ -64,6 +69,12 @@ return [
             'driver' => 'eloquent',
             'model' => App\Models\Admin::class, // <--- Ganti ini mengarah ke Model Admin
         ],
+
+           'customers' => [
+        'driver' => 'eloquent',
+        'model' => App\Models\Customer::class,
+        ],
+
     ],
 
     /*
