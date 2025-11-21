@@ -17,16 +17,21 @@ class Customer extends Authenticatable
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id_customer',
-        'role_id',
-        'nama_lengkap',
-        'email',
-        'password',
-        'no_telp',
-        'alamat',
-        'jenis_kelamin',
-        'status_akun',
-        'foto'
+    'id_customer',
+    'role_id',
+    'nama_lengkap',
+    'nama_panggilan',
+    'email',
+    'password',
+    'no_telp',
+    'alamat',
+    'negara',
+    'tgl_lahir',
+    'kota',
+    'jenis_kelamin',
+    'gol_darah',
+    'foto',
+    'status_akun',
     ];
 
     protected $hidden = ['password'];

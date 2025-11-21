@@ -1,34 +1,149 @@
 import DashboardLayout from '@/layouts/dashboard-layout-personal';
 import { Head } from '@inertiajs/react';
-import { useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import axios from 'axios';
 
 export default function Profile() {
-    // State untuk mengelola input form
-    const [formData, setFormData] = useState({
-        fullName: 'Budi Santoso',
-        nickname: '',
-        gender: '',
-        phone: '',
-        bloodType: '',
-        email: 'budisantoso@gmail.com',
-        country: '',
-        city: '',
-    });
-
-    // Handler untuk memperbarui state saat input berubah
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { id, value } = e.target;
-        setFormData((prevData) => ({
-            ...prevData,
-            [id]: value,
-        }));
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        alert('Simulasi: Data berhasil disimpan!');
-        console.log('Data yang disubmit:', formData);
-    };
+      const [loading, setLoading] = useState(true);
+       const [saving, setSaving] = useState(false);
+   
+       // State Form (Frontend)
+       // Kita tetap gunakan nama variabel camelCase di React agar rapi
+       // Nanti saat submit/load baru kita cocokkan dengan snake_case database
+       const [formData, setFormData] = useState({
+           id_customer: '', // Perlu ID untuk update data
+           fullName: '', // Map ke: nama_admin
+           nickname: '', // DB: Tidak ada (Nanti bisa ditambah di DB jika perlu)
+           gender: '', // DB: Tidak ada
+           phone: '', // Map ke: no_telp
+           bloodType: '', // DB: Tidak ada
+           email: '', // Map ke: email
+           country: 'Indonesia', // DB: Tidak ada (Default)
+           city: '', // DB: Tidak ada
+           foto: '', // Map ke: foto
+           status_akun: '', // Map ke: status_akun
+       });
+   
+       // === 1. AMBIL DATA DARI LOCAL STORAGE (MAPPING DB -> FORM) ===
+       useEffect(() => {
+           const token = localStorage.getItem('token');
+           const userDataString = localStorage.getItem('user_data');
+   
+           if (!token || !userDataString) {
+               console.warn('Belum login. Silakan login terlebih dahulu.');
+               setLoading(false);
+               return;
+           }
+   
+           try {
+               const user = JSON.parse(userDataString);
+               console.log('Data Database:', user);
+   
+               // MAPPING DATA DARI DATABASE 'admins' KE FORM REACT
+               setFormData((prev) => ({
+                   ...prev,
+                   id_customer: user.id_customer || '',
+   
+                   // 1. Nama Admin
+                   fullName: user.nama_lengkap || user.name || '',
+   
+                   // 2. Email
+                   email: user.email || '',
+   
+                   // 3. No Telp
+                   phone: user.no_telp || user.phone || '',
+   
+                   // 4. Foto (Jika null di DB, string kosong)
+                   foto: user.foto || '',
+   
+                   // 5. Status Akun
+                   status_akun: user.status_akun || 'aktif',
+   
+                   // --- Field di bawah ini TIDAK ADA di tabel 'admins' Anda ---
+                   // Jika nanti Anda menambahkan kolom di DB, sesuaikan di sini
+                   nickname: user.nama_panggilan || '',
+                   city: user.kota || '',
+                   gender: user.jenis_kelamin || '', // atau user.jenis_kelamin
+                   bloodType: user.gol_darah || '',
+                   country: user.negara || 'Indonesia',
+               }));
+           } catch (error) {
+               console.error('Gagal memparsing data user', error);
+           } finally {
+               setLoading(false);
+           }
+       }, []);
+   
+       const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+           const { id, value } = e.target;
+           setFormData((prevData) => ({
+               ...prevData,
+               [id]: value,
+           }));
+       };
+   
+       // === 2. SIMPAN KE DATABASE (MAPPING FORM -> DB) ===
+       const handleSubmit = async (e: FormEvent) => {
+           e.preventDefault();
+           setSaving(true);
+   
+           const token = localStorage.getItem('token');
+   
+           // Siapkan payload data sesuai nama kolom di database 'admins'
+           const payloadDatabase = {
+                id_customer : formData.id_customer,
+               nama_lengkap: formData.fullName, // Frontend: fullName -> DB: nama_admin
+               no_telp: formData.phone, // Frontend: phone -> DB: no_telp
+               // email biasanya tidak diubah di edit profile biasa, tapi jika perlu:
+               // email: formData.email,
+   
+               // Field lain yang mungkin Anda butuh kirim walau tidak ada di tabel admins (opsional)
+               nama_panggilan: formData.nickname,
+               gol_darah: formData.bloodType,
+               jenis_kelamin: formData.gender,
+               kota: formData.city,
+               negara: formData.country
+           };
+   
+           console.log('Mengirim data ke Backend:', payloadDatabase);
+   
+           try {
+               // Ganti URL dengan endpoint update profile Laravel Anda
+               await axios.post('http://127.0.0.1:8000/personal/update-profile-personal', payloadDatabase, {
+                   headers: { Authorization: `Bearer ${token}` }
+               });
+   
+               // Simulasi Delay Request
+               await new Promise((r) => setTimeout(r, 1000));
+   
+               // === PENTING: UPDATE LOCAL STORAGE AGAR DATA SINKRON ===
+               // Kita ambil data lama, lalu timpa dengan data baru yang sesuai struktur DB
+               const oldData = JSON.parse(localStorage.getItem('user_data') || '{}');
+               const newData = {
+                   ...oldData,
+                    nama_lengkap: formData.fullName, // Frontend: fullName -> DB: nama_admin
+                    no_telp: formData.phone,
+                    nama_panggilan: formData.nickname,
+                    gol_darah: formData.bloodType,
+                    jenis_kelamin: formData.gender,
+                    kota: formData.city,
+                    negara: formData.country
+               };
+   
+               localStorage.setItem('user_data', JSON.stringify(newData));
+   
+               alert('Berhasil! Data profil telah diperbarui.');
+           } catch (error: any) {
+               console.error('Error saving profile:', error);
+               alert('Gagal menyimpan perubahan.');
+           } finally {
+               setSaving(false);
+           }
+       };
+   
+       if (loading) {
+           return <div className="flex h-screen items-center justify-center text-slate-500">Loading data profile...</div>;
+       }
 
     return (
         <DashboardLayout>

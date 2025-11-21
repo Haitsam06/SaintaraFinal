@@ -5,6 +5,7 @@ use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Personal\ProfilePersonalController;
 use Illuminate\Foundation\Application;
 
 Route::get('/', function () {
@@ -83,6 +84,8 @@ Route::prefix('personal')->group(function () {
         return Inertia::render('Personal/form-tes-personal');
     })->name('personal.form-tes');
 
+    Route::post('/update-profile-personal', [ProfilePersonalController::class, 'update']);
+
 });
 
 // admin routes
@@ -137,7 +140,7 @@ Route::prefix('instansi')->group(function () {
 
     // 1. Dashboard
     Route::get('/dashboardInstansi', function () {
-        return Inertia::render('Instansi/dashboard');
+        return Inertia::render('Instansi/Dashboard');
     })->name('instansi.dashboard');
 
     // 2. Profil Organisasi
@@ -178,6 +181,7 @@ Route::prefix('instansi')->group(function () {
     Route::get('/formTesInstansi', function () {
         return Inertia::render('Instansi/form-tes-instansi');
     })->name('instansi.form-tes-instansi');
+    
 
 });
 
