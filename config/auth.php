@@ -45,6 +45,14 @@ return [
             'driver' => 'session',
             'provider' => 'admins',
         ],
+        'customer' => [
+            'driver' => 'session',
+            'provider' => 'customers',
+        ],
+        'instansi' => [
+            'driver' => 'session',
+            'provider' => 'instansis',
+        ],
     ],
 
     'providers' => [
@@ -56,6 +64,14 @@ return [
         'admins' => [
             'driver' => 'eloquent',
             'model' => App\Models\Admin::class,
+        ],
+        'customers' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Customer::class,
+        ],
+        'instansis' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Instansi::class,
         ],
     ],
 
