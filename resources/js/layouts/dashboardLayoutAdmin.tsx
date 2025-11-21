@@ -1,41 +1,17 @@
-import { Link, usePage } from '@inertiajs/react';
-import React, { useEffect, useState } from 'react'; // Tambah useEffect & useState
-import { HiBell, HiCalendar, HiCog, HiCurrencyDollar, HiHome, HiLogout, HiQuestionMarkCircle, HiUserGroup, HiUsers } from 'react-icons/hi';
+import { Link, router, usePage } from '@inertiajs/react'; // Tambah router
+import React from 'react';
+import { HiCalendar, HiCog, HiCurrencyDollar, HiHome, HiLogout, HiQuestionMarkCircle, HiUserGroup, HiUsers } from 'react-icons/hi';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const { url } = usePage();
+    // 1. AMBIL DATA USER LANGSUNG DARI SERVER (INERTIA)
+    // Tidak perlu lagi pakai useEffect / localStorage
+    const { url, props } = usePage();
+    const { auth } = props as any; // Ambil properti auth
+    const user = auth?.user || {}; // Ambil user, atau object kosong jika null
 
-    // 1. STATE UNTUK MENYIMPAN DATA USER
-    const [user, setUser] = useState({
-        name: 'Loading...',
-        email: '',
-        foto: '', // Asumsi ada field foto, jika tidak pakai placeholder
-    });
-
-    // 2. AMBIL DATA USER DARI LOCALSTORAGE SAAT WEBSITE DIMUAT
-    useEffect(() => {
-        const userDataStr = localStorage.getItem('user_data');
-        if (userDataStr) {
-            try {
-                const parsedUser = JSON.parse(userDataStr);
-                // Mapping data sesuai struktur database/model Admin Anda
-                setUser({
-                    name: parsedUser.nama_admin || parsedUser.name || 'Admin',
-                    email: parsedUser.email || '',
-                    foto: parsedUser.foto || '',
-                });
-            } catch (e) {
-                console.error('Gagal parsing user data');
-            }
-        }
-    }, []);
-
-    // 3. LOGIKA LOGOUT YANG BENAR (HAPUS TOKEN)
+    // 2. LOGIKA LOGOUT YANG BENAR (POST ke Server)
     const logout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user_data');
-        // Redirect manual agar halaman refresh penuh dan kembali ke login
-        window.location.href = '/login';
+        router.post('/logout'); // Ini akan menghapus session di server & redirect ke login
     };
 
     const menuItems = [
@@ -52,7 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
         <div className="flex min-h-screen bg-gray-50 font-poppins">
             {/* === SIDEBAR === */}
-            <aside className="flex w-64 flex-shrink-0 flex-col bg-gray-900 bg-saintara-black text-white transition-all duration-300">
+            <aside className="flex w-64 flex-shrink-0 flex-col bg-gray-900 text-white transition-all duration-300">
                 {/* Logo */}
                 <div className="flex h-20 items-center justify-center border-b border-gray-700">
                     <Link href="/">
@@ -86,21 +62,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex flex-1 flex-col overflow-hidden">
                 {/* === HEADER === */}
                 <header className="flex h-20 items-center justify-between border-b border-gray-100 bg-white px-8 shadow-sm">
-                    {/* 4. TAMPILKAN NAMA DINAMIS */}
-                    <h2 className="text-2xl font-bold text-gray-800">Selamat datang, {user.name}!</h2>
+                    {/* TAMPILKAN NAMA DARI PROPS INERTIA */}
+                    {/* Admin.php sudah punya atribut 'name', jadi ini aman */}
+                    <h2 className="text-2xl font-bold text-gray-800">Selamat datang, {user.name || user.nama_admin || 'Admin'}!</h2>
 
                     <div className="flex items-center space-x-2">
-                        <a href="/admin/profileAdmin" className="flex cursor-pointer items-center rounded-full bg-yellow-400 px-4 py-2 shadow-md transition-all duration-200 hover:shadow-lg">
+                        <Link href="/admin/profileAdmin" className="flex cursor-pointer items-center rounded-full bg-yellow-400 px-4 py-2 shadow-md transition-all duration-200 hover:shadow-lg">
                             <div className="mr-2 h-9 w-9 overflow-hidden rounded-full bg-white">
-                                {/* Tampilkan foto jika ada, jika tidak pakai placeholder inisial */}
-                                {user.foto ? <img src={user.foto} alt="Avatar" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center font-bold text-gray-800">{user.name.substring(0, 2).toUpperCase()}</div>}
+                                {/* Tampilkan foto jika ada */}
+                                {user.foto ? <img src={user.foto} alt="Avatar" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center font-bold text-gray-800">{user.name ? user.name.substring(0, 2).toUpperCase() : 'AD'}</div>}
                             </div>
 
                             <div className="text-sm">
-                                <p className="leading-none font-bold text-gray-900">{user.name}</p>
-                                <p className="text-xs leading-none text-gray-700">{user.email}</p>
+                                <p className="leading-none font-bold text-gray-900">{user.name || 'Admin'}</p>
+                                <p className="text-xs leading-none text-gray-700">{user.email || ''}</p>
                             </div>
-                        </a>
+                        </Link>
                     </div>
                 </header>
 

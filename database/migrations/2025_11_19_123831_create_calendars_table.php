@@ -14,10 +14,19 @@ return new class extends Migration {
             $table->id('id_kalender');
             $table->string('nama_agenda');
             $table->date('tanggal');
+
+            // --- TAMBAHKAN BARIS INI ---
+            $table->string('waktu'); // Menyimpan string seperti "10:00 - 12:00"
+            // ---------------------------
+
             $table->text('deskripsi')->nullable();
 
-            $table->string('admin_id'); // FK: id_admin
+            // Foreign Key ke Admin
+            $table->string('admin_id');
             $table->foreign('admin_id')->references('id_admin')->on('admins')->onDelete('cascade');
+
+            // Kolom tipe (warna dot: blue, green, red)
+            $table->string('tipe')->default('blue');
 
             $table->timestamps();
         });

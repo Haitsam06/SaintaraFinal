@@ -3,29 +3,31 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable; // Penting: Ganti extends Model jadi ini
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens; // Penting untuk API Token
 
 class Admin extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory, Notifiable;
 
-    // 1. Definisi nama tabel
     protected $table = 'admins';
-
-    // 2. Definisi Primary Key kustom
     protected $primaryKey = 'id_admin';
-
-    // 3. Karena id_admin adalah varchar (bukan integer auto increment)
     public $incrementing = false;
     protected $keyType = 'string';
 
-    // 4. Kolom yang boleh diisi (Mass Assignment)
+    public $timestamps = false;
+    const CREATED_AT = 'tanggal_dibuat';
+    const UPDATED_AT = null;
+
+    // --- [PERBAIKAN 1] TAMBAHKAN 'name' DISINI ---
+    protected $appends = ['id', 'name'];
+    // ---------------------------------------------
+
     protected $fillable = [
         'id_admin',
         'role_id',
         'nama_admin',
+        'jenis_kelamin',
         'email',
         'password',
         'no_telp',
@@ -34,14 +36,26 @@ class Admin extends Authenticatable
         'tanggal_dibuat',
     ];
 
-    // 5. Kolom yang disembunyikan saat return JSON (biar password gak bocor)
     protected $hidden = [
         'password',
+        'remember_token',
     ];
 
-    // 6. Casting tipe data (opsional, tapi bagus untuk tanggal)
     protected $casts = [
-        'tanggal_dibuat' => 'date',
-        'password' => 'hashed', // Otomatis hash password saat save/update (Laravel 10+)
+        'tanggal_dibuat' => 'datetime',
+        'password' => 'hashed',
     ];
+
+    // Helper 'id' yang sudah ada (JANGAN DIHAPUS)
+    public function getIdAttribute()
+    {
+        return $this->id_admin;
+    }
+
+    // --- [PERBAIKAN 2] BUAT PENERJEMAH 'nama_admin' JADI 'name' ---
+    public function getNameAttribute()
+    {
+        return $this->nama_admin;
+    }
+    // --------------------------------------------------------------
 }

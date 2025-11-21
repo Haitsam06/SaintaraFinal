@@ -28,7 +28,7 @@ class CustomersSeeder extends Seeder
             ],
             [
                 'id_customer' => 'CUST002',
-                'role_id' => 3,
+                'role_id' => 1,
                 'nama_lengkap' => 'Siti Aminah', 
                 'email' => 'siti@gmail.com',
                 'password' => Hash::make('password123'),

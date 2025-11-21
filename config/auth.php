@@ -38,17 +38,20 @@ return [
     'guards' => [
         'web' => [
             'driver' => 'session',
-            'provider' => 'users', // <-- Ini defaultnya 'users', mungkin ini penyebabnya
+            'provider' => 'users',
         ],
-        // Apakah Anda punya guard admin disini?
+
+        // PASTIKAN BAGIAN INI ADA:
         'admin' => [
             'driver' => 'session',
-            'provider' => 'admins',
+            'provider' => 'admins', // <--- Menunjuk ke provider 'admins' di bawah
         ],
+
         'customer' => [
             'driver' => 'session',
             'provider' => 'customers',
         ],
+
         'instansi' => [
             'driver' => 'session',
             'provider' => 'instansis',
@@ -58,20 +61,23 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => App\Models\User::class, // <-- Model ini mungkin tidak ada
+            'model' => App\Models\User::class,
         ],
-        // Harus ada provider untuk admin
+
+        // PASTIKAN BAGIAN INI ADA:
         'admins' => [
             'driver' => 'eloquent',
-            'model' => App\Models\Admin::class,
+            'model' => App\Models\Admin::class, // <--- Menunjuk ke Model Admin Anda
         ],
+
         'customers' => [
             'driver' => 'eloquent',
             'model' => App\Models\Customer::class,
         ],
+
         'instansis' => [
             'driver' => 'eloquent',
-            'model' => App\Models\Instansi::class,
+            'model' => App\Models\Instansi::class, // Pastikan modelnya ada
         ],
     ],
 

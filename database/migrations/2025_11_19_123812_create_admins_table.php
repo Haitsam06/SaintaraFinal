@@ -14,6 +14,7 @@ return new class extends Migration {
             $table->string('id_admin')->primary(); // PK: id_admin [varchar]
             $table->foreignId('role_id')->nullable()->constrained('roles')->onDelete('set null'); // FK: user (role)
             $table->string('nama_admin');
+            $table->enum('jenis_kelamin', ['Laki-laki', 'Perempuan'])->nullable();
             $table->string('email')->unique();
             $table->string('password');
             $table->string('no_telp')->nullable();

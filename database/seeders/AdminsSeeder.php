@@ -13,30 +13,32 @@ class AdminsSeeder extends Seeder
     {
         DB::table('admins')->insert([
             [
-                'id_admin' => 'ADM001',
-                'role_id' => 1, // superadmin
-                'nama_admin' => 'Super Admin',
+                'id_admin' => 'ADM-001', // Karena tipe datanya string
+                'role_id' => 1,         // Pastikan ID 1 ada di tabel roles, atau ganti null
+                'nama_admin' => 'Super Administrator',
+                'jenis_kelamin' => 'Laki-laki', // Data untuk kolom baru
                 'email' => 'superadmin@example.com',
-                'password' => Hash::make('password123'),
-                'no_telp' => '081234567890',
+                'password' => Hash::make('password123'), // Enkripsi password
+                'no_telp' => '081299998888',
                 'status_akun' => 'aktif',
                 'foto' => null,
-                'tanggal_dibuat' => Carbon::now()->toDateString(),
-                'created_at' => now(),
-                'updated_at' => now(),
+                'tanggal_dibuat' => Carbon::now(),
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ],
             [
-                'id_admin' => 'ADM002',
-                'role_id' => 1, // superadmin
-                'nama_admin' => 'Admin',
-                'email' => 'admin@example.com',
+                'id_admin' => 'ADM-002',
+                'role_id' => 1,      // Contoh jika tanpa role
+                'nama_admin' => 'Siti Admin',
+                'jenis_kelamin' => 'Perempuan', // Data untuk kolom baru
+                'email' => 'siti@example.com',
                 'password' => Hash::make('password123'),
-                'no_telp' => '081234567891',
+                'no_telp' => '085712345678',
                 'status_akun' => 'aktif',
                 'foto' => null,
-                'tanggal_dibuat' => Carbon::now()->toDateString(),
-                'created_at' => now(),
-                'updated_at' => now(),
+                'tanggal_dibuat' => Carbon::now(),
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ],
         ]);
     }
