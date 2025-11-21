@@ -145,7 +145,7 @@ export default function Profile() {
         <DashboardLayout>
             <Head title="Edit Profil" />
             <div className="mb-6 flex items-center justify-between">
-                <h1 className="text-3xl font-bold text-blue-900">Pengguna</h1>
+                <h1 className="text-3xl font-bold text-slate-900">Pengguna</h1>
                 <div className="text-sm text-slate-500">
                     Logged in as: <span className="font-bold text-slate-800">{formData.email}</span>
                 </div>
@@ -197,23 +197,6 @@ export default function Profile() {
                                     <input id="fullName" type="text" className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 focus:outline-none" value={formData.fullName} onChange={handleChange} required />
                                 </div>
                                 <div>
-                                    <label htmlFor="nickname" className="mb-2 block text-sm font-medium text-gray-700">
-                                        Nama Panggilan
-                                    </label>
-                                    <input
-                                        id="nickname"
-                                        type="text"
-                                        placeholder="Masukkan nama panggilan"
-                                        className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 focus:outline-none"
-                                        value={formData.nickname}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Jenis Kelamin & No Telepon */}
-                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                <div>
                                     <label htmlFor="gender" className="mb-2 block text-sm font-medium text-gray-700">
                                         Jenis Kelamin
                                     </label>
@@ -223,6 +206,10 @@ export default function Profile() {
                                         <option value="P">Perempuan</option>
                                     </select>
                                 </div>
+                            </div>
+
+                            {/* Jenis Kelamin & No Telepon */}
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                 <div>
                                     <label htmlFor="phone" className="mb-2 block text-sm font-medium text-gray-700">
                                         No Telephone
@@ -236,22 +223,6 @@ export default function Profile() {
                                         onChange={handleChange}
                                     />
                                 </div>
-                            </div>
-
-                            {/* Golongan Darah & Email */}
-                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                <div>
-                                    <label htmlFor="bloodType" className="mb-2 block text-sm font-medium text-gray-700">
-                                        Golongan Darah
-                                    </label>
-                                    <select id="bloodType" className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 focus:outline-none" value={formData.bloodType} onChange={handleChange}>
-                                        <option value="">Pilih Gol. Darah</option>
-                                        <option value="A">A</option>
-                                        <option value="B">B</option>
-                                        <option value="AB">AB</option>
-                                        <option value="O">O</option>
-                                    </select>
-                                </div>
                                 <div>
                                     <label htmlFor="email" className="mb-2 block text-sm font-medium text-gray-700">
                                         Email
@@ -260,38 +231,8 @@ export default function Profile() {
                                 </div>
                             </div>
 
-                            {/* Negara & Kota */}
-                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                <div>
-                                    <label htmlFor="country" className="mb-2 block text-sm font-medium text-gray-700">
-                                        Negara
-                                    </label>
-                                    <input
-                                        id="country"
-                                        type="text"
-                                        placeholder="Indonesia"
-                                        className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 focus:outline-none"
-                                        value={formData.country}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor="city" className="mb-2 block text-sm font-medium text-gray-700">
-                                        Kota
-                                    </label>
-                                    <input
-                                        id="city"
-                                        type="text"
-                                        placeholder="Jakarta"
-                                        className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 focus:outline-none"
-                                        value={formData.city}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                            </div>
-
                             <div className="flex justify-end pt-6">
-                                <button type="submit" disabled={saving} className="rounded-lg bg-slate-900 px-8 py-3 text-sm font-bold text-white shadow-lg transition-all hover:bg-slate-800 focus:ring-4 focus:ring-slate-300 focus:outline-none disabled:opacity-70">
+                                <button type="submit" disabled={saving} className="rounded-lg bg-saintara-yellow px-8 py-3 text-sm font-bold text-slate-900 shadow-lg transition-all hover:bg-yellow-500 focus:ring-4 focus:ring-slate-300 focus:outline-none disabled:opacity-70">
                                     {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
                                 </button>
                             </div>

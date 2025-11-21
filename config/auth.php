@@ -38,43 +38,25 @@ return [
     'guards' => [
         'web' => [
             'driver' => 'session',
-            'provider' => 'users', // <--- Ini mengacu ke konfigurasi poin 1
+            'provider' => 'users', // <-- Ini defaultnya 'users', mungkin ini penyebabnya
         ],
-
-            'customer' => [
-        'driver' => 'session',
-        'provider' => 'customers',
+        // Apakah Anda punya guard admin disini?
+        'admin' => [
+            'driver' => 'session',
+            'provider' => 'admins',
         ],
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | User Providers
-    |--------------------------------------------------------------------------
-    |
-    | All authentication guards have a user provider, which defines how the
-    | users are actually retrieved out of your database or other storage
-    | system used by the application. Typically, Eloquent is utilized.
-    |
-    | If you have multiple user tables or models you may configure multiple
-    | providers to represent the model / table. These providers may then
-    | be assigned to any extra authentication guards you have defined.
-    |
-    | Supported: "database", "eloquent"
-    |
-    */
-
     'providers' => [
-        'users' => [ // Kita bisa menimpa 'users' atau membuat baru 'admins'
+        'users' => [
             'driver' => 'eloquent',
-            'model' => App\Models\Admin::class, // <--- Ganti ini mengarah ke Model Admin
+            'model' => App\Models\User::class, // <-- Model ini mungkin tidak ada
         ],
-
-           'customers' => [
-        'driver' => 'eloquent',
-        'model' => App\Models\Customer::class,
+        // Harus ada provider untuk admin
+        'admins' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Admin::class,
         ],
-
     ],
 
     /*

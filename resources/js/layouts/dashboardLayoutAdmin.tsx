@@ -101,11 +101,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <p className="text-xs leading-none text-gray-700">{user.email}</p>
                             </div>
                         </a>
-
-                        <button type="button" className="relative flex h-13 w-13 items-center justify-center rounded-full bg-yellow-400 text-gray-900 shadow-md transition-colors hover:bg-yellow-500">
-                            <HiBell className="h-6 w-6" />
-                            <span className="absolute top-1 right-1 h-3 w-3 rounded-full border-2 border-white bg-red-600"></span>
-                        </button>
                     </div>
                 </header>
 
