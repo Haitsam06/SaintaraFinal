@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Personal\ProfilePersonalController;
 use App\Http\Controllers\Admin\ProfileAdminController;
 use App\Http\Controllers\Admin\AgendaAdminController;
+use App\Http\Controllers\PublicCalendarController;
 use App\Http\Controllers\AuthController;
 
 /*
@@ -35,6 +36,9 @@ Route::middleware('guest')->group(function () {
     })->name('register');
 
     Route::post('/register', [AuthController::class, 'store'])->name('register.store');
+
+    // Ini adalah rute yang benar dan mengirim data
+    Route::get('/kalender-agenda', [PublicCalendarController::class, 'index'])->name('public.calendar');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -54,6 +58,8 @@ Route::prefix('personal')->name('personal.')->group(function () {
     Route::get('/profilePersonal', function () {
         return Inertia::render('Personal/Profile');
     })->name('profile');
+
+    Route::put('/profile/update', [ProfilePersonalController::class, 'update'])->name('personal.profile.update');
 
     Route::get('/daftarTesPersonal', function () {
         return Inertia::render('Personal/daftar-tes');

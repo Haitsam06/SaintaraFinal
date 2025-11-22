@@ -1,162 +1,190 @@
-import DashboardLayout from '@/layouts/dashboardLayoutAdmin';
+import DashboardLayout from '@/layouts/dashboard-layout-personal';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
+import { HiCamera } from 'react-icons/hi';
 
-// 1. TAMBAHKAN INTERFACE INI (Agar TypeScript tidak bingung)
-interface ProfileForm {
-    nama_admin: string;
-    no_telp: string;
-    jenis_kelamin: string;
+// --- Interface user dari Inertia ---
+interface UserProps {
+    id_customer: string;
+    nama_lengkap: string;
+    nama_panggilan: string;
     email: string;
+    no_telp: string;
+    alamat: string;
+    negara: string;
+    kota: string;
+    jenis_kelamin: string;
+    gol_darah: string;
+    tgl_lahir: string;
+    foto: string | null;
+    status_akun: string;
+    name: string;
 }
 
+// --- Props dari Inertia ---
+type ProfileProps = {
+    name: string;
+    age: number;
+    [key: string]: any;
+};
+
 export default function Profile() {
-    // 1. AMBIL DATA USER DARI SERVER (INERTIA)
-    const { auth } = usePage().props as any;
+    const { auth, success } = usePage<ProfileProps>().props;
     const user = auth.user;
 
-    // 2. SETUP FORM MENGGUNAKAN INERTIA useForm
-    const { data, setData, post, processing, errors, recentlySuccessful } = useForm<ProfileForm>({
-        nama_admin: user.name || user.nama_admin || '',
-        no_telp: user.no_telp || '',
-        jenis_kelamin: user.jenis_kelamin || '',
-        email: user.email || '',
+    // --- Form state ---
+    const { data, setData, post, processing, errors, recentlySuccessful } = useForm({
+        _method: 'put',
+        new_foto: null as File | null,
+
+        nama_lengkap: user.nama_lengkap,
+        nama_panggilan: user.nama_panggilan,
+        no_telp: user.no_telp,
+        alamat: user.alamat,
+        negara: user.negara,
+        kota: user.kota,
+        jenis_kelamin: user.jenis_kelamin,
+        gol_darah: user.gol_darah,
+        tgl_lahir: user.tgl_lahir,
     });
 
-    // 3. HANDLE SUBMIT
-    const submit: FormEventHandler = (e) => {
+    // --- Submit handler ---
+    const submit: FormEventHandler<HTMLFormElement> = (e) => {
         e.preventDefault();
 
-        // Kirim data ke route update
-        post('/admin/updateProfile', {
-            preserveScroll: true, // Agar halaman tidak scroll ke atas setelah simpan
-            onSuccess: () => {
-                // Opsional: Reset form atau logika lain
-                // Alert bawaan browser (bisa diganti Toast/Notifikasi cantik nanti)
-                // alert('Berhasil disimpan!');
-            },
+        post(route('personal.profile.update'), {
+            preserveScroll: true,
+            onSuccess: () => setData('new_foto', null),
         });
     };
 
+    const fotoPreview = data.new_foto ? URL.createObjectURL(data.new_foto) : user.foto;
+
     return (
         <DashboardLayout>
-            <Head title="Edit Profil" />
+            <Head title="Profil Pribadi" />
 
-            <div className="mb-6 flex items-center justify-between">
-                <h1 className="text-3xl font-bold text-slate-900">Pengguna</h1>
-                <div className="text-sm text-slate-500">
-                    ID: <span className="font-mono font-bold text-slate-800">{user.id_admin || user.id}</span>
-                </div>
-            </div>
+            {/* Flash success */}
+            {success || recentlySuccessful ? <div className="mb-4 rounded-lg bg-green-100 p-4 text-sm text-green-700">Perubahan berhasil disimpan!</div> : null}
 
-            {/* NOTIFIKASI SUKSES SEDERHANA */}
-            {recentlySuccessful && <div className="mb-4 rounded-lg bg-green-100 p-4 text-sm text-green-700 transition-all">✅ Perubahan berhasil disimpan!</div>}
+            <h1 className="mb-8 text-3xl font-bold text-gray-800">Profil Pribadi</h1>
 
-            <div className="grid grid-cols-1 gap-8 font-sans lg:grid-cols-3">
-                {/* --- KARTU PROFIL (KIRI) --- */}
-                <div className="space-y-8 lg:col-span-1">
-                    <div className="rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm">
-                        <div className="flex flex-col items-center">
-                            <div className="mb-4 flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-yellow-50 bg-slate-100 shadow-lg">
-                                {user.foto ? <img src={user.foto} alt="Profile" className="h-full w-full object-cover" /> : <span className="text-4xl">👤</span>}
-                            </div>
-                            {/* Nama diambil dari state 'data' agar realtime berubah saat diketik */}
-                            <h5 className="mb-1 text-xl font-bold text-gray-900">{data.nama_admin || 'Nama Admin'}</h5>
-                            <span className="text-sm text-gray-500">{data.email}</span>
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                {/* ------------------ KIRI ------------------ */}
+                <div className="space-y-6">
+                    {/* Foto & Nama */}
+                    <div className="rounded-xl bg-white p-6 text-center shadow-lg">
+                        <div className="relative mx-auto mb-4 h-32 w-32">
+                            <img src={fotoPreview || '/memoji-placeholder.png'} className="h-full w-full rounded-full object-cover shadow" />
+
+                            <label htmlFor="foto-upload" className="absolute right-0 bottom-0 cursor-pointer rounded-full bg-yellow-400 p-2 shadow">
+                                <HiCamera />
+                                <input
+                                    id="foto-upload"
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                        const f = e.target.files?.[0] ?? null;
+                                        setData('new_foto', f);
+                                    }}
+                                />
+                            </label>
                         </div>
+
+                        <h2 className="text-lg font-bold">{user.name}</h2>
+                        <p className="text-sm text-gray-500">{user.email}</p>
                     </div>
 
-                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                        <h5 className="mb-4 border-b border-gray-100 pb-2 text-lg font-bold text-gray-900">Detail Akun</h5>
-                        <div className="space-y-3">
-                            <div className="flex justify-between">
-                                <span className="text-sm text-gray-600">Status</span>
-                                <span className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${user.status_akun === 'aktif' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{user.status_akun || 'Aktif'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-sm text-gray-600">Gender</span>
-                                <span className="text-sm font-bold text-gray-800">{data.jenis_kelamin || '-'}</span>
-                            </div>
-                        </div>
+                    {/* Detail akun */}
+                    <div className="rounded-xl bg-white p-6 shadow-lg">
+                        <h4 className="mb-4 font-bold">Detail Akun</h4>
+
+                        <InfoRow label="Nama Panggilan" value={user.nama_panggilan} />
+                        <InfoRow label="Tanggal Lahir" value={user.tgl_lahir} />
+                        <InfoRow label="Golongan Darah" value={user.gol_darah} />
+                        <InfoRow label="Negara" value={user.negara} />
                     </div>
                 </div>
 
-                {/* --- FORM EDIT (KANAN) --- */}
-                <div className="lg:col-span-2">
-                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm md:p-8">
-                        <h5 className="mb-1 text-2xl font-bold text-gray-800">Edit Data Diri</h5>
-                        <p className="mb-6 text-sm text-gray-500">Perbarui informasi profil administrator Anda.</p>
+                {/* ------------------ KANAN: FORM ------------------ */}
+                <div className="rounded-xl bg-white p-8 shadow-lg lg:col-span-2">
+                    <h3 className="mb-6 text-2xl font-bold">Edit Data Diri</h3>
 
-                        <hr className="mb-6 border-gray-100" />
+                    <form onSubmit={submit} className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <Input label="Nama Lengkap" id="nama_lengkap" value={data.nama_lengkap} onChange={(e) => setData('nama_lengkap', e.target.value)} error={errors.nama_lengkap} />
 
-                        <form className="space-y-6" onSubmit={submit}>
-                            {/* Nama Admin & Jenis Kelamin */}
-                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                <div>
-                                    <label htmlFor="nama_admin" className="mb-2 block text-sm font-medium text-gray-700">
-                                        Nama Lengkap
-                                    </label>
-                                    <input
-                                        id="nama_admin"
-                                        type="text"
-                                        className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 focus:outline-none"
-                                        value={data.nama_admin}
-                                        onChange={(e) => setData('nama_admin', e.target.value)}
-                                        required
-                                    />
-                                    {errors.nama_admin && <div className="mt-1 text-xs text-red-500">{errors.nama_admin}</div>}
-                                </div>
-                                <div>
-                                    <label htmlFor="jenis_kelamin" className="mb-2 block text-sm font-medium text-gray-700">
-                                        Jenis Kelamin
-                                    </label>
-                                    <select
-                                        id="jenis_kelamin"
-                                        className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 focus:outline-none"
-                                        value={data.jenis_kelamin}
-                                        onChange={(e) => setData('jenis_kelamin', e.target.value)}
-                                    >
-                                        <option value="">Pilih Jenis Kelamin</option>
-                                        <option value="Laki-laki">Laki-laki</option>
-                                        <option value="Perempuan">Perempuan</option>
-                                    </select>
-                                    {errors.jenis_kelamin && <div className="mt-1 text-xs text-red-500">{errors.jenis_kelamin}</div>}
-                                </div>
-                            </div>
+                        <Input label="Nama Panggilan" id="nama_panggilan" value={data.nama_panggilan} onChange={(e) => setData('nama_panggilan', e.target.value)} error={errors.nama_panggilan} />
 
-                            {/* No Telp & Email */}
-                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                <div>
-                                    <label htmlFor="no_telp" className="mb-2 block text-sm font-medium text-gray-700">
-                                        No Telephone
-                                    </label>
-                                    <input
-                                        id="no_telp"
-                                        type="text"
-                                        placeholder="08..."
-                                        className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 focus:outline-none"
-                                        value={data.no_telp}
-                                        onChange={(e) => setData('no_telp', e.target.value)}
-                                    />
-                                    {errors.no_telp && <div className="mt-1 text-xs text-red-500">{errors.no_telp}</div>}
-                                </div>
-                                <div>
-                                    <label htmlFor="email" className="mb-2 block text-sm font-medium text-gray-700">
-                                        Email
-                                    </label>
-                                    <input id="email" type="email" className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-200 p-2.5 text-sm text-slate-500" value={data.email} readOnly title="Email tidak dapat diubah" />
-                                </div>
-                            </div>
+                        <Input label="Tanggal Lahir" id="tgl_lahir" type="date" value={data.tgl_lahir} onChange={(e) => setData('tgl_lahir', e.target.value)} error={errors.tgl_lahir} />
 
-                            <div className="flex justify-end pt-6">
-                                <button type="submit" disabled={processing} className="rounded-lg bg-yellow-400 px-8 py-3 text-sm font-bold text-slate-900 shadow-lg transition-all hover:bg-yellow-500 focus:ring-4 focus:ring-yellow-200 disabled:opacity-70">
-                                    {processing ? 'Menyimpan...' : 'Simpan Perubahan'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                        <Input label="Nomor Telepon" id="no_telp" value={data.no_telp} onChange={(e) => setData('no_telp', e.target.value)} error={errors.no_telp} />
+
+                        <Select label="Jenis Kelamin" id="jenis_kelamin" value={data.jenis_kelamin} onChange={(e) => setData('jenis_kelamin', e.target.value)} options={['Laki-laki', 'Perempuan']} error={errors.jenis_kelamin} />
+
+                        <Select label="Golongan Darah" id="gol_darah" value={data.gol_darah} onChange={(e) => setData('gol_darah', e.target.value)} options={['A', 'B', 'AB', 'O']} error={errors.gol_darah} />
+
+                        <Input label="Negara" id="negara" value={data.negara} onChange={(e) => setData('negara', e.target.value)} error={errors.negara} />
+
+                        <Input label="Kota" id="kota" value={data.kota} onChange={(e) => setData('kota', e.target.value)} error={errors.kota} />
+
+                        {/* Email readonly */}
+                        <div>
+                            <label>Email</label>
+                            <input type="email" className="w-full rounded-lg border bg-gray-200 p-2.5 text-gray-500" value={user.email} readOnly />
+                        </div>
+
+                        <div className="col-span-2 flex justify-end">
+                            <button type="submit" disabled={processing} className="rounded-lg bg-yellow-400 px-8 py-3 font-bold text-slate-900 hover:bg-yellow-500">
+                                {processing ? 'Menyimpan...' : 'Simpan Perubahan'}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </DashboardLayout>
+    );
+}
+
+// ---------- COMPONENT KECIL (Bersih & rapi) ----------
+
+function Input({ label, id, type = 'text', value, onChange, error }: { label: string; id: string; type?: string; value: any; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; error?: string }) {
+    return (
+        <div>
+            <label htmlFor={id} className="block text-sm font-medium">
+                {label}
+            </label>
+            <input id={id} type={type} className="w-full rounded-lg border bg-gray-50 p-2.5" value={value} onChange={onChange} />
+            {error && <p className="text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+function Select({ label, id, value, onChange, options, error }: { label: string; id: string; value: any; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; options: string[]; error?: string }) {
+    return (
+        <div>
+            <label htmlFor={id} className="block text-sm font-medium">
+                {label}
+            </label>
+            <select id={id} className="w-full rounded-lg border bg-gray-50 p-2.5" value={value} onChange={onChange}>
+                <option value="">Pilih {label}</option>
+                {options.map((o) => (
+                    <option key={o} value={o}>
+                        {o}
+                    </option>
+                ))}
+            </select>
+
+            {error && <p className="text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="flex justify-between text-sm">
+            <span>{label}</span>
+            <span className="font-semibold">{value || '-'}</span>
+        </div>
     );
 }

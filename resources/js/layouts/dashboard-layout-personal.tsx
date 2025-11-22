@@ -1,6 +1,5 @@
-import { Link, usePage } from '@inertiajs/react';
-import axios from 'axios';
-import { ReactNode, useEffect, useState } from 'react';
+import { Link, router, usePage } from '@inertiajs/react'; // Tambah router & usePage
+import { ReactNode } from 'react';
 import { HiBell, HiCog, HiCreditCard, HiDocumentReport, HiDocumentText, HiGift, HiHome, HiLogout, HiSupport, HiUserCircle } from 'react-icons/hi';
 
 // Daftar Menu
@@ -16,57 +15,20 @@ const menuItems = [
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-    const { url } = usePage();
+    // 1. AMBIL DATA USER LANGSUNG DARI SERVER (INERTIA)
+    const { url, props } = usePage();
+    const { auth } = props as any;
+    // Ambil user dari props, jika null/tidak ada, fallback ke object kosong
+    const user = auth?.user || {};
 
-    // 1. State untuk menyimpan data user
-    const [user, setUser] = useState({
-        name: 'Loading...',
-        email: '',
-        foto: '',
-    });
-
-    // 2. Ambil data dari LocalStorage saat komponen dimuat
-    useEffect(() => {
-        const userDataStr = localStorage.getItem('user_data');
-        if (userDataStr) {
-            try {
-                const parsedUser = JSON.parse(userDataStr);
-                // Logika penyesuaian nama kolom dari database (nama_lengkap / nama_customer / name)
-                setUser({
-                    name: parsedUser.nama_lengkap || parsedUser.nama_customer || parsedUser.name || 'User',
-                    email: parsedUser.email || '',
-                    foto: parsedUser.foto || '',
-                });
-            } catch (error) {
-                console.error('Gagal memuat data user', error);
-            }
-        }
-    }, []);
-
-    // 3. Fungsi Logout yang Benar
-    const logout = async () => {
-        try {
-            const token = localStorage.getItem('token');
-
-            // Request ke backend untuk hapus token database
-            if (token) {
-                await axios.post(
-                    'http://127.0.0.1:8000/api/logout',
-                    {},
-                    {
-                        headers: { Authorization: `Bearer ${token}` },
-                    },
-                );
-            }
-        } catch (error) {
-            console.error('Gagal logout server', error);
-        } finally {
-            // Hapus data lokal & redirect
-            localStorage.removeItem('token');
-            localStorage.removeItem('user_data');
-            window.location.href = '/login';
-        }
+    // 2. FUNGSI LOGOUT YANG BENAR (POST ke Server)
+    const logout = () => {
+        // Karena kita sudah pakai session, cukup POST ke /logout
+        router.post('/logout');
     };
+
+    // Fallback Nama: Ambil dari name (accessor) atau nama_lengkap (db) atau default 'Tamu'
+    const displayName = user.name || user.nama_lengkap || 'Tamu';
 
     return (
         <div className="flex min-h-screen bg-gray-50 font-poppins">
@@ -75,7 +37,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 {/* Logo */}
                 <div className="flex h-20 items-center justify-center border-b border-gray-700">
                     <Link href="/" className="flex items-center gap-3">
-                        {/* Ganti src dengan path logo Anda */}
                         <img src="/assets/logo/4.png" alt="Logo" className="h-8 w-8 rounded-full bg-white object-contain" />
                         <h1 className="cursor-pointer text-2xl font-bold tracking-wider text-white transition-colors hover:text-yellow-400">SAINTARA</h1>
                     </Link>
@@ -86,15 +47,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     {menuItems.map((item) => {
                         const isActive = url.startsWith(item.href);
                         return (
-                            <Link
-                                key={item.name}
-                                href={item.href}
-                                className={`group flex items-center rounded-lg px-4 py-2.5 transition-all duration-300 ${
-                                    isActive
-                                        ? 'bg-yellow-400 font-bold text-gray-900 shadow-md' // Style Aktif
-                                        : 'text-gray-300 hover:bg-gray-700 hover:text-white' // Style Normal
-                                }`}
-                            >
+                            <Link key={item.name} href={item.href} className={`group flex items-center rounded-lg px-4 py-2.5 transition-all duration-300 ${isActive ? 'bg-yellow-400 font-bold text-gray-900 shadow-md' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}>
                                 <item.icon className={`mr-3 h-6 w-6 transition-colors ${isActive ? 'text-gray-900' : 'text-gray-400 group-hover:text-yellow-400'}`} />
                                 {item.name}
                             </Link>
@@ -115,17 +68,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 {/* Header */}
                 <header className="flex h-20 items-center justify-between border-b border-gray-100 bg-white px-8 shadow-sm">
                     {/* Nama User Dinamis */}
-                    <h2 className="text-2xl font-bold text-gray-800">Selamat datang, {user.name}!</h2>
+                    <h2 className="text-2xl font-bold text-gray-800">Selamat datang, {displayName}!</h2>
 
                     <div className="flex items-center space-x-3">
+                        {/* Profile Link / Avatar */}
                         <Link href="/personal/profilePersonal" className="flex cursor-pointer items-center rounded-full bg-yellow-400 px-4 py-2 shadow-md transition-all duration-200 hover:shadow-lg">
                             <div className="mr-2 h-9 w-9 overflow-hidden rounded-full bg-gray-200">
-                                {user.foto ? <img src={user.foto} alt="Avatar" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center font-bold text-gray-600">{user.name.charAt(0)}</div>}
+                                {/* Tampilkan foto atau inisial */}
+                                {user.foto ? <img src={user.foto} alt="Avatar" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center font-bold text-gray-600">{displayName.charAt(0)}</div>}
                             </div>
 
                             <div className="text-sm">
-                                <p className="leading-none font-bold text-gray-900">{user.name}</p>
-                                <p className="text-xs leading-none text-gray-700">{user.email}</p>
+                                <p className="leading-none font-bold text-gray-900">{displayName}</p>
+                                <p className="text-xs leading-none text-gray-700">{user.email || 'No Email'}</p>
                             </div>
                         </Link>
 
