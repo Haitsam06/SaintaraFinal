@@ -11,11 +11,13 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('pakets', function (Blueprint $table) {
+            
+            // paket : bronze(brz), silver(slv), gold(gld)
             $table->string('id_paket')->primary(); // PK: id_paket [varchar]
             $table->string('nama_paket');
+
             $table->integer('harga')->unsigned();
             $table->string('deskripsi')->nullable();
-            $table->enum('tipe_paket', ['premium', 'standar', 'percobaan']);
             $table->integer('jumlah_karakter')->unsigned();
             $table->timestamps();
         });
