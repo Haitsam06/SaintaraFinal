@@ -31,6 +31,19 @@ export default function Profile() {
     const { auth } = usePage<ProfileProps>().props;
     const user = auth.user;
 
+    const searchParams = new URLSearchParams(window.location.search);
+    const paketId = searchParams.get('paket_id');
+
+    // Helper sederhana untuk mengubah Kode Paket jadi Nama
+    const getNamaPaket = (id: string | null) => {
+        if (id === 'DSR') return 'Paket Dasar';
+        if (id === 'STD') return 'Paket Standar';
+        if (id === 'PRM') return 'Paket Premium';
+        return 'Belum Memilih Paket';
+    };
+
+    const namaPaket = getNamaPaket(paketId);
+
     // 2. Inisialisasi useForm dengan data user dari props
     const { data, setData, put, processing, errors } = useForm({
         // Mapping data dari database ke state form
@@ -71,8 +84,9 @@ export default function Profile() {
                 const pesan = `
 *FORMULIR DATA DIRI SAINTARA*
 ----------------------------------
-Halo Admin, saya ingin melanjutkan tes kepribadian. Berikut data diri saya:
+Halo Admin, saya ingin melanjutkan tes kepribadian dengan *Paket Pilihan:* ${namaPaket}
 
+Berikut data diri saya:
 *Nama Lengkap:* ${data.nama_lengkap}
 *Nama Panggilan:* ${data.nama_panggilan}
 *Email:* ${user.email}

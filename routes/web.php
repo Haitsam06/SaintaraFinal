@@ -3,6 +3,8 @@
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Personal\ProfilePersonalController;
+use App\Http\Controllers\Personal\TransaksiPersonalController;
+use App\Http\Controllers\Personal\DaftarTesController;
 use App\Http\Controllers\Admin\ProfileAdminController;
 use App\Http\Controllers\Admin\AgendaAdminController;
 use App\Http\Controllers\PublicCalendarController;
@@ -61,13 +63,13 @@ Route::prefix('personal')->name('personal.')->group(function () {
 
     Route::put('/profile/update', [ProfilePersonalController::class, 'update'])->name('personal.profile.update');
 
-    Route::get('/daftarTesPersonal', function () {
-        return Inertia::render('Personal/daftar-tes');
-    })->name('daftar-tes');
+    Route::get('/daftarTesPersonal', [DaftarTesController::class, 'index'])->name('daftar-tes');
 
-    Route::get('/transaksiTokenPersonal', function () {
-        return Inertia::render('Personal/transaksi-token');
-    })->name('transaksi-token');
+    Route::get('/transaksiTokenPersonal', [TransaksiPersonalController::class, 'index'])
+    ->name('transaksi-token');
+
+    // Route untuk checkout transaksi token'
+    Route::post('/transaksi/checkout', [TransaksiPersonalController::class, 'checkout'])->name('transaksi.checkout');
 
     Route::get('/hasilTesPersonal', function () {
         return Inertia::render('Personal/results');
