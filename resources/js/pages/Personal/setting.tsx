@@ -125,7 +125,7 @@ export default function Settings({ customer }: any) {
                         </form>
                     </div>
 
-                    {/* === Zona Berbahaya === */}
+                    {/* === Zona Berbahaya ===
                     <div className="rounded-xl border border-red-300 bg-red-100 p-6 shadow">
                         <h2 className="mb-2 text-lg font-bold text-red-700">Zona Berbahaya</h2>
                         <p className="mb-4 text-sm text-red-600">
@@ -137,7 +137,7 @@ export default function Settings({ customer }: any) {
                         >
                             Hapus Akun Saya
                         </button>
-                    </div>
+                    </div> */}
 
                 </div>
             </div>

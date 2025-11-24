@@ -29,6 +29,7 @@ class Pembayaran extends Model
         'status_pembayaran', // 'berhasil', 'gagal', 'menunggu'
         'id_gateway',        // ID dari Midtrans
         'metode_pembayaran',
+        'jumlah_token',
         'url_pembayaran',
         'waktu_dibayar',
         'waktu_kadaluarsa'

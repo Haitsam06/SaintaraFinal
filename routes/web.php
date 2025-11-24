@@ -14,7 +14,7 @@ use App\Http\Controllers\Personal\DaftarTesController;
 use App\Http\Controllers\Personal\DonationController;
 use App\Http\Controllers\Personal\BantuanController;
 use App\Http\Controllers\Personal\SettingPersonalController;
-use App\Http\Controllers\Personal\PaymentCallbackController; // Webhook Midtrans
+// use App\Http\Controllers\Personal\PaymentCallbackController; // Tidak dipakai lagi karena diganti TransaksiPersonalController
 
 // Instansi & Admin Controllers
 use App\Http\Controllers\Instansi\InstansiProfileController;
@@ -35,9 +35,10 @@ Route::get('/test-web', function () {
     return 'Web Loaded';
 });
 
-// --- WEBHOOK MIDTRANS (PENTING: Di luar Middleware Auth) ---
-// Route ini diakses oleh server Midtrans, bukan user login
-Route::post('/payment/notification', [PaymentCallbackController::class, 'handle']);
+// --- WEBHOOK MIDTRANS (PENTING) ---
+// URL ini HARUS sama dengan yang ada di bootstrap/app.php (validateCsrfTokens)
+// Dan pastikan settingan di Dashboard Midtrans (Notification URL) mengarah ke: domain.com/payment/notification
+Route::post('/payment/notification', [TransaksiPersonalController::class, 'callback']);
 
 
 // --- BAGIAN AUTHENTICATION ---
@@ -76,11 +77,10 @@ Route::middleware(['auth:customer'])->prefix('personal')->name('personal.')->gro
         return Inertia::render('Personal/Profile');
     })->name('profile');
     Route::put('/profile/update', [ProfilePersonalController::class, 'update'])->name('profile.update');
-    Route::post('/update-profile-personal', [ProfilePersonalController::class, 'update']); // Cadangan jika ada form lama pakai POST
+    Route::post('/update-profile-personal', [ProfilePersonalController::class, 'update']); 
 
     // --- DAFTAR TES ---
     Route::get('/daftarTesPersonal', [DaftarTesController::class, 'index'])->name('daftar-tes');
-    // Halaman Form Tes (Pre-test question)
     Route::get('/formTes', function () {
         return Inertia::render('Personal/form-tes-personal');
     })->name('form-tes');
@@ -95,18 +95,15 @@ Route::middleware(['auth:customer'])->prefix('personal')->name('personal.')->gro
     })->name('results');
 
     // --- HADIAH & DONASI ---
-    // 1. Halaman Menu Pilihan Donasi
     Route::get('/hadiahDonasiPersonal', function () {
         return Inertia::render('Personal/hadiah-donasi');
     })->name('hadiah-donasi');
 
-    // 2. Donasi ke Teman
     Route::get('/FormHadiahDonasi', function () {
         return Inertia::render('Personal/FormHadiahDonasi');
     })->name('form-hadiah-donasi');
     Route::post('/donation/send', [DonationController::class, 'sendToken'])->name('donation.send');
 
-    // 3. Donasi ke Saintara
     Route::get('/FormHadiahDonasiSaintara', function () {
         return Inertia::render('Personal/FormHadiahDonasiSaintara');
     })->name('form-hadiah-donasi-saintara');

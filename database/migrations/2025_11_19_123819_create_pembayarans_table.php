@@ -18,6 +18,8 @@ return new class extends Migration {
             $table->string('paket_id'); 
             $table->foreign('paket_id')->references('id_paket')->on('pakets')->onDelete('restrict');
 
+            $table->integer('jumlah_token')->default(1); // Jumlah token yang dibeli
+
             // --- TAMBAHAN PENTING: HARGA ---
             // Mencatat harga DEAL saat transaksi terjadi (Snapshot Harga)
             $table->decimal('jumlah_bayar', 12, 2); // 12 digit, 2 desimal
