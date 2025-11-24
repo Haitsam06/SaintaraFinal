@@ -77,11 +77,12 @@ class TransaksiPersonalController extends Controller
         ]);
 
         // 2. Setup Konfigurasi Midtrans
+        // Mengambil key dari file .env
         Config::$serverKey = env('MIDTRANS_SERVER_KEY');
         Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
         Config::$isSanitized = true;
         Config::$is3ds = true;
-
+        
         // Gunakan Transaction untuk atomic operation
         return DB::transaction(function () use ($request) {
             $user = Auth::guard('customer')->user();

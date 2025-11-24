@@ -2,19 +2,24 @@
 
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
-// --- IMPORT CONTROLLER BARU ---
-use App\Http\Controllers\Personal\DonationController; 
-// ------------------------------
-use App\Http\Controllers\Instansi\InstansiProfileController;
+
+// --- IMPORT CONTROLLERS ---
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PublicCalendarController;
+
+// Personal Controllers
 use App\Http\Controllers\Personal\ProfilePersonalController;
 use App\Http\Controllers\Personal\TransaksiPersonalController;
 use App\Http\Controllers\Personal\DaftarTesController;
+use App\Http\Controllers\Personal\DonationController;
 use App\Http\Controllers\Personal\BantuanController;
 use App\Http\Controllers\Personal\SettingPersonalController;
+use App\Http\Controllers\Personal\PaymentCallbackController; // Webhook Midtrans
+
+// Instansi & Admin Controllers
+use App\Http\Controllers\Instansi\InstansiProfileController;
 use App\Http\Controllers\Admin\ProfileAdminController;
 use App\Http\Controllers\Admin\AgendaAdminController;
-use App\Http\Controllers\PublicCalendarController;
-use App\Http\Controllers\AuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,8 +35,12 @@ Route::get('/test-web', function () {
     return 'Web Loaded';
 });
 
-// --- BAGIAN AUTHENTICATION ---
+// --- WEBHOOK MIDTRANS (PENTING: Di luar Middleware Auth) ---
+// Route ini diakses oleh server Midtrans, bukan user login
+Route::post('/payment/notification', [PaymentCallbackController::class, 'handle']);
 
+
+// --- BAGIAN AUTHENTICATION ---
 Route::middleware('guest')->group(function () {
     Route::get('/login', function () {
         return Inertia::render('auth/login');
@@ -51,92 +60,74 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 
-// --- GROUP PERSONAL USER (CUSTOMER) ---
+// =========================================================================
+// GROUP PERSONAL USER (CUSTOMER)
 // Middleware: auth:customer
+// =========================================================================
 Route::middleware(['auth:customer'])->prefix('personal')->name('personal.')->group(function () {
 
-    // URL: /personal/dashboardPersonal
+    // --- DASHBOARD (LOAD DATA DARI DB) ---
     Route::get('/dashboardPersonal', function () {
         return Inertia::render('Personal/dashboard-personal');
     })->name('dashboard');
 
+    // --- PROFIL ---
     Route::get('/profilePersonal', function () {
         return Inertia::render('Personal/Profile');
     })->name('profile');
+    Route::put('/profile/update', [ProfilePersonalController::class, 'update'])->name('profile.update');
+    Route::post('/update-profile-personal', [ProfilePersonalController::class, 'update']); // Cadangan jika ada form lama pakai POST
 
-    Route::put('/profile/update', [ProfilePersonalController::class, 'update'])->name('personal.profile.update');
-
+    // --- DAFTAR TES ---
     Route::get('/daftarTesPersonal', [DaftarTesController::class, 'index'])->name('daftar-tes');
-
-    Route::get('/transaksiTokenPersonal', [TransaksiPersonalController::class, 'index'])
-    ->name('transaksi-token');
-
-    // Route untuk checkout transaksi token
-    Route::post('/transaksi/checkout', [TransaksiPersonalController::class, 'checkout'])->name('transaksi.checkout');
-
-    Route::get('/hasilTesPersonal', function () {
-        return Inertia::render('Personal/results');
-    })->name('results');
-
-    // --- FITUR DONASI ---
-    
-    // 1. Halaman History/List Donasi
-    Route::get('/hadiahDonasiPersonal', function () {
-        return Inertia::render('Personal/hadiah-donasi');
-    })->name('hadiah-donasi');
-
-    // 2. Halaman Form Donasi (Tampilan React tadi)
-    Route::get('/FormHadiahDonasi', function () {
-        return Inertia::render('Personal/FormHadiahDonasi');
-    })->name('form-hadiah-donasi');
-
-    // 3. PROSES BACKEND KIRIM DONASI (Baru Ditambahkan)
-    // URL Akhir: /personal/donation/send
-    Route::post('/donation/send', [DonationController::class, 'sendToken'])->name('donation.send');
-
-    // Route Tampilan Form Donasi ke Saintara
-    Route::get('/FormHadiahDonasiSaintara', function () {
-        return Inertia::render('Personal/FormHadiahDonasiSaintara');
-    })->name('form-hadiah-donasi-saintara');
-
-    // Route PROSES Donasi ke Saintara (Backend)
-    Route::post('/donation/saintara', [DonationController::class, 'sendToSaintara'])->name('donation.saintara');
-
-    Route::get('/bantuanPersonal', [BantuanController::class, 'index'])->name('bantuan');
-    Route::post('/bantuanPersonal', [BantuanController::class, 'store'])->name('bantuan.store');
-    
-    // --------------------
-
-    Route::get('/bantuanPersonal', function () {
-        return Inertia::render('Personal/bantuan');
-    })->name('bantuan');
-
-    Route::get('/settingPersonal', function () {
-        return Inertia::render('Personal/setting');
-    })->name('setting');
-
+    // Halaman Form Tes (Pre-test question)
     Route::get('/formTes', function () {
         return Inertia::render('Personal/form-tes-personal');
     })->name('form-tes');
 
-    Route::post('/update-profile-personal', [ProfilePersonalController::class, 'update']);
+    // --- TRANSAKSI & TOKEN ---
+    Route::get('/transaksiTokenPersonal', [TransaksiPersonalController::class, 'index'])->name('transaksi-token');
+    Route::post('/transaksi/checkout', [TransaksiPersonalController::class, 'checkout'])->name('transaksi.checkout');
 
-    // Route Halaman Pengaturan
-    Route::get('/settingPersonal', [SettingPersonalController::class, 'index'])
-        ->name('setting.index');
+    // --- HASIL TES ---
+    Route::get('/hasilTesPersonal', function () {
+        return Inertia::render('Personal/results');
+    })->name('results');
 
-    // Route Update Password (PUT)
-    Route::put('/settingPersonal/password', [SettingPersonalController::class, 'updatePassword'])
-        ->name('setting.password');
+    // --- HADIAH & DONASI ---
+    // 1. Halaman Menu Pilihan Donasi
+    Route::get('/hadiahDonasiPersonal', function () {
+        return Inertia::render('Personal/hadiah-donasi');
+    })->name('hadiah-donasi');
 
-    // Route Hapus Akun (DELETE) - Gunakan URL yang sama dengan index tapi method DELETE
-    Route::delete('/settingPersonal', [SettingPersonalController::class, 'destroy'])
-        ->name('setting.destroy');
+    // 2. Donasi ke Teman
+    Route::get('/FormHadiahDonasi', function () {
+        return Inertia::render('Personal/FormHadiahDonasi');
+    })->name('form-hadiah-donasi');
+    Route::post('/donation/send', [DonationController::class, 'sendToken'])->name('donation.send');
+
+    // 3. Donasi ke Saintara
+    Route::get('/FormHadiahDonasiSaintara', function () {
+        return Inertia::render('Personal/FormHadiahDonasiSaintara');
+    })->name('form-hadiah-donasi-saintara');
+    Route::post('/donation/saintara', [DonationController::class, 'sendToSaintara'])->name('donation.saintara');
+
+    // --- BANTUAN & LAYANAN ---
+    Route::get('/bantuanPersonal', [BantuanController::class, 'index'])->name('bantuan');
+    Route::post('/bantuanPersonal', [BantuanController::class, 'store'])->name('bantuan.store');
+
+    // --- PENGATURAN AKUN ---
+    Route::get('/settingPersonal', [SettingPersonalController::class, 'index'])->name('setting.index');
+    Route::put('/settingPersonal/password', [SettingPersonalController::class, 'updatePassword'])->name('setting.password');
+    Route::delete('/settingPersonal', [SettingPersonalController::class, 'destroy'])->name('setting.destroy');
 
 });
 
-// --- GROUP ADMIN ---
+
+// =========================================================================
+// GROUP ADMIN
 // Middleware: auth:admin
+// =========================================================================
 Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::get('/dashboardAdmin', function () {
@@ -150,7 +141,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/updateProfile', [ProfileAdminController::class, 'update'])->name('profile.update');
 
     Route::get('/agendaAdmin', [AgendaAdminController::class, 'index'])->name('agenda');
-
     Route::post('/agendaAdmin', [AgendaAdminController::class, 'store'])->name('agenda.store');
 
     Route::get('/penggunaAdmin', function () {
@@ -175,19 +165,19 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 });
 
-// --- GROUP INSTANSI ---
+
+// =========================================================================
+// GROUP INSTANSI
 // Middleware: auth:instansi
+// =========================================================================
 Route::middleware(['auth:instansi'])->prefix('instansi')->name('instansi.')->group(function () {
 
     Route::get('/dashboardInstansi', function () {
         return Inertia::render('Instansi/Dashboard');
     })->name('dashboard');
 
-    Route::get('/profilInstansi', [InstansiProfileController::class, 'edit'])
-        ->name('profil');
-
-    Route::post('/profilInstansi', [InstansiProfileController::class, 'update'])
-        ->name('profil.update');
+    Route::get('/profilInstansi', [InstansiProfileController::class, 'edit'])->name('profil');
+    Route::post('/profilInstansi', [InstansiProfileController::class, 'update'])->name('profil.update');
 
     Route::get('/tesInstansi', function () {
         return Inertia::render('Instansi/DaftarTes');

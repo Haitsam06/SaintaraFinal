@@ -2,6 +2,14 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import DashboardLayout from '@/layouts/dashboard-layout-personal';
 import { Head, router } from '@inertiajs/react';
+import axios from 'axios'; // <--- KITA GUNAKAN AXIOS AGAR LEBIH STABIL
+
+// --- DEKLARASI GLOBAL MIDTRANS ---
+declare global {
+    interface Window {
+        snap: any;
+    }
+}
 
 // === 1. DEFINISI TIPE DATA ===
 interface Paket {
@@ -48,7 +56,7 @@ export default function TransaksiDanToken({
     // === STATE MANAGEMENT ===
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [selectedPaket, setSelectedPaket] = useState<Paket | null>(null);
-    const [quantity, setQuantity] = useState<number>(0);
+    const [quantity, setQuantity] = useState<number>(1); // Default quantity 1
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     // === HELPER FUNCTIONS ===
@@ -71,7 +79,7 @@ export default function TransaksiDanToken({
 
     // Logic Quantity
     const handleIncrement = () => setQuantity((prev) => prev + 1);
-    const handleDecrement = () => setQuantity((prev) => (prev > 0 ? prev - 1 : 0));
+    const handleDecrement = () => setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
 
     // Logic Pilih Paket
     const handleSelectPaket = (paket: Paket) => {
@@ -79,29 +87,57 @@ export default function TransaksiDanToken({
         setQuantity(1);
     };
 
-    // Logic Checkout
-    const handleCheckout = () => {
+    // === LOGIC CHECKOUT (MENGGUNAKAN AXIOS) ===
+    const handleCheckout = async () => {
+        // 1. Validasi Awal
         if (!selectedPaket) return alert("Silakan pilih paket terlebih dahulu!");
         if (quantity <= 0) return alert("Jumlah token minimal 1");
 
         setIsLoading(true);
 
-        router.post('/personal/transaksi/checkout', {
-            paket_id: selectedPaket.id_paket,
-            quantity: quantity,
-            total_harga: selectedPaket.harga * quantity
-        }, {
-            onSuccess: () => {
-                setIsLoading(false);
-                setIsModalOpen(false);
-                setQuantity(0);
-                setSelectedPaket(null);
-            },
-            onError: () => {
-                setIsLoading(false);
-                alert("Terjadi kesalahan saat memproses transaksi.");
+        try {
+            // 2. Request Snap Token ke Backend menggunakan AXIOS
+            // Axios otomatis menghandle CSRF Token Laravel (XSRF-TOKEN cookie)
+            const response = await axios.post('/personal/transaksi/checkout', {
+                paket_id: selectedPaket.id_paket,
+                quantity: quantity
+            });
+
+            const result = response.data; // Ambil data dari response axios
+
+            // 3. Jika Sukses dapat Token, Buka Popup Midtrans
+            if (result.snap_token) {
+                setIsModalOpen(false); // Tutup modal internal kita
+                
+                // Panggil fungsi global Snap Midtrans
+                window.snap.pay(result.snap_token, {
+                    onSuccess: function(result: any) {
+                        alert("Pembayaran Berhasil! Saldo Token akan segera bertambah.");
+                        window.location.reload(); // Reload halaman untuk update saldo
+                    },
+                    onPending: function(result: any) {
+                        alert("Menunggu Pembayaran. Silakan selesaikan pembayaran Anda.");
+                        window.location.reload(); 
+                    },
+                    onError: function(result: any) {
+                        alert("Pembayaran Gagal! Silakan coba lagi.");
+                    },
+                    onClose: function() {
+                        alert('Anda menutup popup tanpa menyelesaikan pembayaran');
+                    }
+                });
+            } else {
+                alert("Gagal mendapatkan token pembayaran dari server.");
             }
-        });
+
+        } catch (error: any) {
+            console.error("Checkout Error:", error);
+            // Tangkap pesan error dari backend jika ada
+            const message = error.response?.data?.message || error.response?.data?.error || "Terjadi kesalahan sistem.";
+            alert("Gagal: " + message);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -110,7 +146,7 @@ export default function TransaksiDanToken({
 
             <div className="p-6 min-h-screen bg-[#FAFAFA] font-sans text-[#2A2A2A]">
 
-                {/* === NOTIFIKASI === */}
+                {/* === NOTIFIKASI SUKSES === */}
                 {flash?.success && (
                     <div className="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-r shadow-sm flex justify-between items-center animate-fade-in-down">
                         <div className="flex items-center">
@@ -156,7 +192,6 @@ export default function TransaksiDanToken({
                         
                         {/* 1. HERO CARD: Total Saldo */}
                         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 p-8 text-white shadow-xl">
-                            {/* Dekorasi Background */}
                             <div className="absolute top-0 right-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-white opacity-10 blur-3xl"></div>
                             <div className="absolute bottom-0 left-0 -ml-16 -mb-16 h-64 w-64 rounded-full bg-black opacity-10 blur-3xl"></div>
 
@@ -253,7 +288,6 @@ export default function TransaksiDanToken({
                                 )}
                             </div>
                             
-                            {/* Footer Decoration */}
                             <div className="p-4 bg-gray-50 rounded-b-3xl text-center">
                                 <p className="text-[10px] text-gray-400">Menampilkan riwayat terbaru Anda</p>
                             </div>
@@ -262,22 +296,17 @@ export default function TransaksiDanToken({
                 </div>
             </div>
 
-            {/* === MODAL CHECKOUT (PERBAIKAN TAMPILAN) === */}
+            {/* === MODAL CHECKOUT (DENGAN PORTAL & MIDTRANS) === */}
             {isModalOpen && createPortal(
-                // Ubah z-50 menjadi z-[999] agar berada di atas Sidebar dan Header
-                <div className="relative z-[999]" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                <div className="relative z-[9999]" aria-labelledby="modal-title" role="dialog" aria-modal="true">
                     
-                    {/* Backdrop Gelap - Pastikan z-index tinggi */}
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity animate-fade-in z-[999]" onClick={() => setIsModalOpen(false)}></div>
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity animate-fade-in z-[9999]" onClick={() => setIsModalOpen(false)}></div>
 
-                    {/* Container Modal */}
-                    <div className="fixed inset-0 z-[1000] overflow-y-auto">
+                    <div className="fixed inset-0 z-[10000] overflow-y-auto">
                         <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
                             
-                            {/* Card Modal Utama */}
                             <div className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-5xl border border-gray-200">
                                 
-                                {/* Header Modal */}
                                 <div className="bg-white px-6 py-5 border-b border-gray-100 flex justify-between items-center sticky top-0 z-20">
                                     <div>
                                         <h3 className="text-xl font-bold text-gray-900">Beli Token Baru</h3>
@@ -291,9 +320,7 @@ export default function TransaksiDanToken({
                                 <div className="flex flex-col lg:flex-row h-full max-h-[80vh] lg:max-h-[70vh]">
                                     
                                     {/* KOLOM KIRI: Pilihan Paket */}
-                                    {/* Ubah Background jadi putih bersih agar kontras */}
                                     <div className="flex-1 overflow-y-auto p-6 bg-white">
-                                        {/* PERBAIKAN GRID: Ubah sm:grid-cols-3 jadi sm:grid-cols-2 agar kartu lebih lebar */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             {daftar_paket.map((paket) => (
                                                 <div 
@@ -368,7 +395,6 @@ export default function TransaksiDanToken({
                                             )}
                                         </div>
 
-                                        {/* Action Button */}
                                         <div className="p-6 bg-white border-t border-gray-200 sticky bottom-0">
                                             <button 
                                                 onClick={handleCheckout}

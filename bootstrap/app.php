@@ -15,14 +15,24 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        
+        // 1. Konfigurasi Cookie (Bawaan Kamu)
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        // 2. === KONFIGURASI MIDTRANS (BARU) ===
+        // Kita izinkan Midtrans mengirim POST ke URL ini tanpa token CSRF
+        $middleware->validateCsrfTokens(except: [
+            'payment/notification', 
+        ]);
+
+        // 3. Middleware Web (Bawaan Kamu)
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 
+        // 4. Alias Middleware (Bawaan Kamu)
         $middleware->alias([
             'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
             'auth.admin' => \App\Http\Middleware\AuthAdmin::class,
