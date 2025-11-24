@@ -2,6 +2,8 @@ import React from 'react'
 import DashboardLayout from '@/layouts/dashboard-layout-personal'
 import { Head } from '@inertiajs/react'
 
+
+
 export default function hadiahDonasi() {
   return (
     <DashboardLayout>
