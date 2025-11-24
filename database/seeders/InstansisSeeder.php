@@ -12,6 +12,8 @@ class InstansisSeeder extends Seeder
 {
     public function run()
     {
+        DB::table('instansi')->delete();
+
         DB::table('instansi')->insert([
             [
                 'id_instansi' => 'INS001',

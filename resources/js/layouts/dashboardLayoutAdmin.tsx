@@ -1,28 +1,33 @@
-import { Link, router, usePage } from '@inertiajs/react'; // Tambah router
+import { Link, router, usePage } from '@inertiajs/react';
 import React from 'react';
-import { HiCalendar, HiCog, HiCurrencyDollar, HiHome, HiLogout, HiQuestionMarkCircle, HiUserGroup, HiUsers } from 'react-icons/hi';
+import { HiBell, HiCalendar, HiCog, HiCurrencyDollar, HiHome, HiLogout, HiQuestionMarkCircle, HiUserGroup, HiUsers } from 'react-icons/hi';
+
+// Interface untuk User
+interface User {
+    name?: string;
+    nama_admin?: string;
+    email?: string;
+    foto?: string;
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-    // 1. AMBIL DATA USER LANGSUNG DARI SERVER (INERTIA)
-    // Tidak perlu lagi pakai useEffect / localStorage
     const { url, props } = usePage();
-    const { auth } = props as any; // Ambil properti auth
-    const user = auth?.user || {}; // Ambil user, atau object kosong jika null
+    const { auth } = props as any;
+    const user: User = auth?.user || {};
 
-    // 2. LOGIKA LOGOUT YANG BENAR (POST ke Server)
     const logout = () => {
-        router.post('/logout'); // Ini akan menghapus session di server & redirect ke login
+        router.post('/logout');
     };
 
     const menuItems = [
         { name: 'Dashboard', href: '/admin/dashboardAdmin', icon: HiHome },
         { name: 'Profile', href: '/admin/profileAdmin', icon: HiUserGroup },
         { name: 'Agenda', href: '/admin/agendaAdmin', icon: HiCalendar },
-        { name: 'Pengguna', href: '/admin/penggunaAdmin', icon: HiUsers },
-        { name: 'Keuangan', href: '/admin/keuanganAdmin', icon: HiCurrencyDollar },
-        { name: 'Tim', href: '/admin/teamAdmin', icon: HiUserGroup },
+        { name: 'Pengguna', href: '/admin/pengguna/personal', icon: HiUsers },
+        { name: 'Token', href: '/admin/token', icon: HiBell },
+        { name: 'Keuangan', href: '/admin/keuangan/pemasukan', icon: HiCurrencyDollar },
         { name: 'Bantuan & Layanan', href: '/admin/supportAdmin', icon: HiQuestionMarkCircle },
-        { name: 'Pengaturan', href: '/admin/settingsAdmin', icon: HiCog },
+        { name: 'Pengaturan', href: '/admin/pengaturan', icon: HiCog },
     ];
 
     return (
@@ -39,7 +44,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {/* Menu Items */}
                 <nav className="flex-1 space-y-2 px-4 py-6">
                     {menuItems.map((item) => {
-                        const isActive = url.startsWith(item.href);
+                        let isActive = false;
+                        if (item.name === 'Pengguna') {
+                            isActive = url.startsWith('/admin/pengguna');
+                        } else if (item.name === 'Keuangan') {
+                            isActive = url.startsWith('/admin/keuangan');
+                        } else if (item.name === 'Pengaturan') {
+                            isActive = url.startsWith('/admin/pengaturan');
+                        } else {
+                            isActive = url.startsWith(item.href);
+                        }
+
                         return (
                             <Link key={item.name} href={item.href} className={`group flex items-center rounded-lg px-4 py-2.5 transition-all duration-300 ${isActive ? 'bg-yellow-400 font-bold text-gray-900 shadow-md' : 'text-gray-300 hover:bg-gray-700 hover:text-white'} `}>
                                 <item.icon className={`mr-3 h-6 w-6 transition-colors ${isActive ? 'text-gray-900' : 'text-gray-400 group-hover:text-yellow-400'} `} />
@@ -62,15 +77,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex flex-1 flex-col overflow-hidden">
                 {/* === HEADER === */}
                 <header className="flex h-20 items-center justify-between border-b border-gray-100 bg-white px-8 shadow-sm">
-                    {/* TAMPILKAN NAMA DARI PROPS INERTIA */}
-                    {/* Admin.php sudah punya atribut 'name', jadi ini aman */}
                     <h2 className="text-2xl font-bold text-gray-800">Selamat datang, {user.name || user.nama_admin || 'Admin'}!</h2>
 
                     <div className="flex items-center space-x-2">
-                        <Link href="/admin/profileAdmin" className="flex cursor-pointer items-center rounded-full bg-yellow-400 px-4 py-2 shadow-md transition-all duration-200 hover:shadow-lg">
+                        <Link href="/admin/profileAdmin" className="flex cursor-pointer items-center rounded-full bg-yellow-400 pl-3 pr-4 py-2 shadow-md transition-all duration-200 hover:shadow-lg">
                             <div className="mr-2 h-9 w-9 overflow-hidden rounded-full bg-white">
-                                {/* Tampilkan foto jika ada */}
-                                {user.foto ? <img src={user.foto} alt="Avatar" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center font-bold text-gray-800">{user.name ? user.name.substring(0, 2).toUpperCase() : 'AD'}</div>}
+                                {/* --- PERBAIKAN DI SINI: Tambahkan /storage/ --- */}
+                                {user.foto ? <img src={`/storage/${user.foto}`} alt="Avatar" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center font-bold text-gray-800">{user.name ? user.name.substring(0, 2).toUpperCase() : 'AD'}</div>}
                             </div>
 
                             <div className="text-sm">

@@ -1,11 +1,18 @@
 <?php
 
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Personal\ProfilePersonalController;
+
+use Inertia\Inertia;
+
+use App\Http\Controllers\Admin\PenggunaAdminController;
 use App\Http\Controllers\Admin\ProfileAdminController;
 use App\Http\Controllers\Admin\AgendaAdminController;
+use App\Http\Controllers\Admin\KeuanganAdminController;
+use App\Http\Controllers\Admin\PengaturanController;
+use App\Http\Controllers\Admin\DashboardAdminController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PublicCalendarController;
+use App\Http\Controllers\Personal\ProfilePersonalController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,6 +42,8 @@ Route::middleware('guest')->group(function () {
     })->name('register');
 
     Route::post('/register', [AuthController::class, 'store'])->name('register.store');
+
+    Route::get('/kalender-agenda', [PublicCalendarController::class, 'index'])->name('public.calendar');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -44,9 +53,6 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // Middleware: auth:customer
 Route::prefix('personal')->name('personal.')->group(function () {
 
-    // URL: /personal/dashboardPersonal
-    // Route Name: personal.dashboard
-    // File: pages/Personal/dashboard-personal.tsx
     Route::get('/dashboardPersonal', function () {
         return Inertia::render('Personal/dashboard-personal');
     })->name('dashboard');
@@ -54,6 +60,8 @@ Route::prefix('personal')->name('personal.')->group(function () {
     Route::get('/profilePersonal', function () {
         return Inertia::render('Personal/Profile');
     })->name('profile');
+
+    Route::put('/profile/update', [ProfilePersonalController::class, 'update'])->name('personal.profile.update');
 
     Route::get('/daftarTesPersonal', function () {
         return Inertia::render('Personal/daftar-tes');
@@ -91,30 +99,68 @@ Route::prefix('personal')->name('personal.')->group(function () {
 // Middleware: auth:admin
 Route::prefix('admin')->name('admin.')->group(function () {
 
-    // URL: /admin/dashboardAdmin
-    // Route Name: admin.dashboard (Fix: hapus prefix 'admin.' di name())
-    // File: pages/Admin/dashboard-admin.tsx
-    Route::get('/dashboardAdmin', function () {
-        return Inertia::render('Admin/dashboard-admin');
-    })->name('dashboard');
+    // ============================================================
+    //  PERUBAHAN DISINI: Menggunakan Controller, bukan function()
+    // ============================================================
+    Route::get('/dashboardAdmin', [DashboardAdminController::class, 'index'])->name('dashboard');
 
+
+    // Profile
     Route::get('/profileAdmin', function () {
         return Inertia::render('Admin/Profile');
     })->name('profile');
 
-    Route::post('/updateProfile', [ProfileAdminController::class, 'update'])->name('profile.update');
+    // FIX: Menggunakan Patch tanpa double prefix.
+    Route::patch('/updateProfile', [ProfileAdminController::class, 'update'])->name('profile.update');
 
+    // Agenda
     Route::get('/agendaAdmin', [AgendaAdminController::class, 'index'])->name('agenda');
-
     Route::post('/agendaAdmin', [AgendaAdminController::class, 'store'])->name('agenda.store');
 
-    Route::get('/penggunaAdmin', function () {
-        return Inertia::render('Admin/Pengguna');
-    })->name('pengguna');
+    // ============================================================
+    //  PERBAIKAN ROUTE PENGGUNA (CRUD & TAB)
+    // ============================================================
+    Route::prefix('pengguna')->name('pengguna.')->group(function () {
+        Route::get('/personal', [PenggunaAdminController::class, 'indexPersonal'])->name('personal');
+        Route::get('/instansi', [PenggunaAdminController::class, 'indexInstansi'])->name('instansi');
 
-    Route::get('/keuanganAdmin', function () {
-        return Inertia::render('Admin/Keuangan');
-    })->name('keuangan');
+        Route::get('/', function () {
+            return redirect()->route('admin.pengguna.personal');
+        });
+
+        Route::post('/', [PenggunaAdminController::class, 'store'])->name('store');
+        Route::put('/{id}', [PenggunaAdminController::class, 'update'])->name('update');
+        Route::delete('/{id}', [PenggunaAdminController::class, 'destroy'])->name('destroy');
+    });
+
+    // Token Management
+    Route::get('/token', [App\Http\Controllers\Admin\TokenAdminController::class, 'index'])->name('token');
+
+    // --- TAMBAHKAN BARIS INI ---
+    Route::post('/token', [App\Http\Controllers\Admin\TokenAdminController::class, 'store'])->name('token.store');
+    Route::put('/token/{id}', [App\Http\Controllers\Admin\TokenAdminController::class, 'update'])->name('token.update');
+    Route::delete('/token/{id}', [App\Http\Controllers\Admin\TokenAdminController::class, 'destroy'])->name('token.destroy');
+    // Menu Keuangan
+    Route::prefix('keuangan')->name('keuangan.')->group(function () {
+        Route::get('/pemasukan', [KeuanganAdminController::class, 'indexPemasukan'])->name('pemasukan');
+        Route::get('/pengeluaran', [KeuanganAdminController::class, 'indexPengeluaran'])->name('pengeluaran');
+        Route::get('/laporan', [KeuanganAdminController::class, 'indexLaporan'])->name('laporan');
+        Route::get('/laporan/cetak', [KeuanganAdminController::class, 'printLaporan'])->name('laporan.print');
+        Route::get('/gaji', [KeuanganAdminController::class, 'indexGaji'])->name('gaji');
+
+        Route::post('/store', [KeuanganAdminController::class, 'store'])->name('store');
+        Route::post('/gaji', [KeuanganAdminController::class, 'storeGaji'])->name('gaji.store');
+
+        Route::put('/update/{id}', [KeuanganAdminController::class, 'update'])->name('update');
+        Route::put('/gaji/{id}', [KeuanganAdminController::class, 'updateGaji'])->name('gaji.update');
+
+        Route::delete('/gaji/{id}', [KeuanganAdminController::class, 'destroyGaji'])->name('gaji.destroy');
+        Route::delete('/destroy/{id}', [KeuanganAdminController::class, 'destroy'])->name('destroy');
+
+        Route::get('/', function () {
+            return redirect()->route('admin.keuangan.pemasukan');
+        });
+    });
 
     Route::get('/teamAdmin', function () {
         return Inertia::render('Admin/Tim');
@@ -124,19 +170,28 @@ Route::prefix('admin')->name('admin.')->group(function () {
         return Inertia::render('Admin/Bantuan');
     })->name('support');
 
-    Route::get('/settingsAdmin', function () {
-        return Inertia::render('Admin/Pengaturan');
-    })->name('settings');
+    Route::prefix('pengaturan')->name('pengaturan.')->group(function () {
+        Route::get('/', [PengaturanController::class, 'index'])->name('index');
+
+        Route::get('/umum', [PengaturanController::class, 'umum'])->name('umum');
+        Route::put('/umum', [PengaturanController::class, 'updateUmum'])->name('umum.update');
+
+        Route::get('/tim', [PengaturanController::class, 'indexTim'])->name('tim');
+        Route::post('/tim', [PengaturanController::class, 'storeTim'])->name('tim.store');
+        Route::put('/tim/{id}', [PengaturanController::class, 'updateTim'])->name('tim.update');
+        Route::delete('/tim/{id}', [PengaturanController::class, 'destroyTim'])->name('tim.destroy');
+
+        Route::get('/paket', [PengaturanController::class, 'indexPaket'])->name('paket');
+        Route::post('/paket', [PengaturanController::class, 'storePaket'])->name('paket.store');
+        Route::put('/paket/{id}', [PengaturanController::class, 'updatePaket'])->name('paket.update');
+        Route::delete('/paket/{id}', [PengaturanController::class, 'destroyPaket'])->name('paket.destroy');
+    });
 
 });
 
 // --- GROUP INSTANSI ---
 // Middleware: auth:instansi
 Route::prefix('instansi')->name('instansi.')->group(function () {
-
-    // URL: /instansi/dashboardInstansi
-    // Route Name: instansi.dashboard
-    // File: pages/Instansi/Dashboard.tsx (Perhatikan huruf D besar sesuai screenshot)
     Route::get('/dashboardInstansi', function () {
         return Inertia::render('Instansi/Dashboard');
     })->name('dashboard');
@@ -172,7 +227,6 @@ Route::prefix('instansi')->name('instansi.')->group(function () {
     Route::get('/formTesInstansi', function () {
         return Inertia::render('Instansi/form-tes-instansi');
     })->name('form-tes-instansi');
-
 });
 
 require __DIR__ . '/settings.php';

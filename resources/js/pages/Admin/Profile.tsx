@@ -1,41 +1,65 @@
 import DashboardLayout from '@/layouts/dashboardLayoutAdmin';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useRef, useState } from 'react';
 
-// 1. TAMBAHKAN INTERFACE INI (Agar TypeScript tidak bingung)
 interface ProfileForm {
     nama_admin: string;
     no_telp: string;
     jenis_kelamin: string;
     email: string;
+    foto: File | null;
+    _method?: string; // Diperlukan untuk trik upload file via PUT/PATCH
 }
 
 export default function Profile() {
-    // 1. AMBIL DATA USER DARI SERVER (INERTIA)
     const { auth } = usePage().props as any;
     const user = auth.user;
 
-    // 2. SETUP FORM MENGGUNAKAN INERTIA useForm
+    // Ref untuk input file yang disembunyikan
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    // State untuk preview gambar lokal sebelum di-upload
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
+
     const { data, setData, post, processing, errors, recentlySuccessful } = useForm<ProfileForm>({
         nama_admin: user.name || user.nama_admin || '',
         no_telp: user.no_telp || '',
         jenis_kelamin: user.jenis_kelamin || '',
         email: user.email || '',
+        foto: null,
+        _method: 'PATCH', // <--- WAJIB ADA: Agar Laravel membaca ini sebagai request PATCH
     });
 
-    // 3. HANDLE SUBMIT
+    // Handle saat user memilih file
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setData('foto', file);
+            // Buat URL sementara untuk preview
+            setPreviewImage(URL.createObjectURL(file));
+        }
+    };
+
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        // Kirim data ke route update
+        // Kita gunakan post(), tapi karena ada _method: 'PATCH', Laravel akan menganggapnya PATCH.
+        // URL '/admin/updateProfile' sesuai dengan route prefix 'admin' + path '/updateProfile'
         post('/admin/updateProfile', {
-            preserveScroll: true, // Agar halaman tidak scroll ke atas setelah simpan
+            preserveScroll: true,
+            forceFormData: true, // Wajib true saat upload file
             onSuccess: () => {
-                // Opsional: Reset form atau logika lain
-                // Alert bawaan browser (bisa diganti Toast/Notifikasi cantik nanti)
-                // alert('Berhasil disimpan!');
+                // Reset preview jika sukses (karena gambar user sudah terupdate dari server)
+                setPreviewImage(null);
             },
         });
+    };
+
+    // Helper untuk menampilkan gambar: Prioritas Preview Lokal -> Gambar DB -> Placeholder
+    const getProfileImage = () => {
+        if (previewImage) return previewImage;
+        // Asumsi di DB disimpan sebagai path 'admins/xxx.jpg', kita perlu akses via /storage/
+        if (user.foto) return `/storage/${user.foto}`;
+        return null;
     };
 
     return (
@@ -49,7 +73,6 @@ export default function Profile() {
                 </div>
             </div>
 
-            {/* NOTIFIKASI SUKSES SEDERHANA */}
             {recentlySuccessful && <div className="mb-4 rounded-lg bg-green-100 p-4 text-sm text-green-700 transition-all">✅ Perubahan berhasil disimpan!</div>}
 
             <div className="grid grid-cols-1 gap-8 font-sans lg:grid-cols-3">
@@ -57,10 +80,23 @@ export default function Profile() {
                 <div className="space-y-8 lg:col-span-1">
                     <div className="rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm">
                         <div className="flex flex-col items-center">
-                            <div className="mb-4 flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-yellow-50 bg-slate-100 shadow-lg">
-                                {user.foto ? <img src={user.foto} alt="Profile" className="h-full w-full object-cover" /> : <span className="text-4xl">👤</span>}
+                            {/* AREA FOTO & UPLOAD */}
+                            <div className="group relative">
+                                <div className="mb-4 flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-yellow-50 bg-slate-100 shadow-lg">
+                                    {getProfileImage() ? <img src={getProfileImage()!} alt="Profile" className="h-full w-full object-cover" /> : <span className="text-4xl">👤</span>}
+                                </div>
+
+                                {/* Input File Tersembunyi */}
+                                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                             </div>
-                            {/* Nama diambil dari state 'data' agar realtime berubah saat diketik */}
+
+                            {/* TOMBOL UBAH FOTO */}
+                            <button type="button" onClick={() => fileInputRef.current?.click()} className="mb-4 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline focus:outline-none">
+                                Ubah Foto
+                            </button>
+                            {/* Error Message untuk Foto */}
+                            {errors.foto && <div className="mb-2 text-xs text-red-500">{errors.foto}</div>}
+
                             <h5 className="mb-1 text-xl font-bold text-gray-900">{data.nama_admin || 'Nama Admin'}</h5>
                             <span className="text-sm text-gray-500">{data.email}</span>
                         </div>

@@ -44,4 +44,16 @@ class Instansi extends Authenticatable
         'password' => 'hashed',
         'tanggal_dibuat' => 'date',
     ];
+
+    protected $appends = ['id', 'name'];
+
+    public function getIdAttribute()
+    {
+        return $this->id_instansi;
+    }
+
+    public function getNameAttribute()
+    {
+        return $this->nama_instansi;
+    }
 }

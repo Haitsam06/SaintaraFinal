@@ -11,6 +11,8 @@ class CustomersSeeder extends Seeder
 {
     public function run()
     {
+        DB::table('customers')->delete();
+
         DB::table('customers')->insert([
             [
                 'id_customer' => 'CUST001',
