@@ -16,16 +16,16 @@ class ProfileAdminController extends Controller
 
         // 1. Validasi Input (Tambahkan validasi foto)
         $validated = $request->validate([
-            'nama_admin'    => 'required|string|max:255',
-            'no_telp'       => 'nullable|string|max:20',
-            'jenis_kelamin' => ['required', Rule::in(['Laki-laki', 'Perempuan'])],
-            'foto'          => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Max 2MB
+            'nama_admin' => 'required|string|max:255',
+            'no_telp' => 'nullable|string|max:20',
+            'jenis_kelamin' => ['required', Rule::in(['Pria', 'Wanita'])],
+            'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Max 2MB
         ]);
 
         // 2. Siapkan data update dasar
         $dataToUpdate = [
-            'nama_admin'    => $validated['nama_admin'],
-            'no_telp'       => $validated['no_telp'],
+            'nama_admin' => $validated['nama_admin'],
+            'no_telp' => $validated['no_telp'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
         ];
 
@@ -38,7 +38,7 @@ class ProfileAdminController extends Controller
 
             // Simpan foto baru ke folder 'admins' di storage public
             $path = $request->file('foto')->store('admins', 'public');
-            
+
             // Simpan path-nya saja (contoh: admins/namafile.jpg)
             $dataToUpdate['foto'] = $path;
         }

@@ -8,7 +8,6 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 use App\Models\Token;
 use App\Models\Pembayaran;
 use App\Models\Paket;
@@ -22,44 +21,67 @@ class TransaksiPersonalController extends Controller
      */
     public function index()
     {
-        $user = Auth::guard('customer')->user(); 
+        $user = Auth::guard('customer')->user();
 
         if (!$user) {
             return redirect()->route('login');
         }
 
-        // 1. Ambil Rincian Token per Paket
-        $rincianToken = Token::where('customer_id', $user->id_customer)
-                            ->where('status', 'belum digunakan')
-                            ->join('pakets', 'tokens.paket_id', '=', 'pakets.id_paket')
-                            ->select('pakets.nama_paket', 'pakets.id_paket', DB::raw('count(*) as total'))
-                            ->groupBy('pakets.id_paket', 'pakets.nama_paket')
-                            ->get();
+        // --- PERBAIKAN LOGIC: HITUNG TOKEN ---
+
+        // 1. Ambil semua token 'belum digunakan' milik user
+        $allTokens = Token::where('customer_id', $user->id_customer)
+            ->where('status', 'belum digunakan')
+            ->get();
+
+        // 2. Kelompokkan Token berdasarkan Kode Paket (Prefix ID)
+        $groupedTokens = $allTokens->groupBy(function ($token) {
+            $parts = explode('-', $token->id_token);
+            return $parts[0]; // Mengambil bagian pertama (ID Paket)
+        });
+
+        // 3. Ambil Info Paket dari Database berdasarkan ID yang ditemukan
+        $paketIds = $groupedTokens->keys();
+        $infoPaket = Paket::whereIn('id_paket', $paketIds)->get()->keyBy('id_paket');
+
+        // 4. Susun Data untuk Frontend
+        $rincianToken = [];
+        foreach ($groupedTokens as $kodePaket => $tokens) {
+            $nama = $infoPaket[$kodePaket]->nama_paket ?? 'Paket Tidak Dikenal';
+
+            $rincianToken[] = [
+                'id_paket' => $kodePaket,
+                'nama_paket' => $nama,
+                'total' => $tokens->count()
+            ];
+        }
 
         // Hitung total semua token
-        $totalToken = $rincianToken->sum('total');
+        $totalToken = $allTokens->count();
+
+        // --- AKHIR PERBAIKAN LOGIC ---
 
         // 2. Ambil Riwayat Pembayaran
         $riwayat = Pembayaran::where('customer_id', $user->id_customer)
-                        ->with('paket')
-                        ->latest()
-                        ->get()
-                        ->map(function($p) {
-                            return [
-                                'id' => $p->id_transaksi,
-                                'nama_paket' => $p->paket->nama_paket ?? 'Paket Tidak Dikenal',
-                                'tanggal' => $p->created_at->translatedFormat('d M Y'),
-                                'jumlah_bayar' => (int) $p->jumlah_bayar,
-                                'status' => $p->status_pembayaran, // 'menunggu', 'berhasil', 'gagal'
-                            ];
-                        });
+            ->with('paket')
+            ->latest()
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id' => $p->id_transaksi,
+                    'nama_paket' => $p->paket->nama_paket ?? 'Paket Tidak Dikenal',
+                    'tanggal' => $p->created_at->translatedFormat('d M Y'),
+                    'jumlah_bayar' => (int) $p->jumlah_bayar,
+                    'status' => $p->status_pembayaran, // 'menunggu', 'berhasil', 'gagal'
+                ];
+            });
 
         // 3. Ambil Daftar Paket
         $daftarPaket = Paket::all();
 
         return Inertia::render('Personal/transaksi-token', [
             'saldo_token' => $totalToken,
-            'rincian_token' => $rincianToken,
+            'rincian_token' => $rincianToken, // Data array hasil olahan PHP
             'riwayat' => $riwayat,
             'daftar_paket' => $daftarPaket
         ]);
@@ -86,11 +108,10 @@ class TransaksiPersonalController extends Controller
         return DB::transaction(function () use ($request) {
             $user = Auth::guard('customer')->user();
             $paket = Paket::findOrFail($request->paket_id);
-            
+
             $totalHarga = $paket->harga * $request->quantity;
-            
+
             // 3. Buat ID Order Unik
-            // Pastikan unik di DB
             do {
                 $orderId = 'INV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(5));
             } while (Pembayaran::where('id_transaksi', $orderId)->exists());
@@ -120,20 +141,20 @@ class TransaksiPersonalController extends Controller
                 // 5. Minta Snap Token dari Midtrans
                 $snapToken = Snap::getSnapToken($params);
 
-                // 6. Simpan Transaksi ke Database (Status: MENUNGGU / PENDING)
-                // Kita BELUM generate token di sini. Token dibuat nanti saat callback sukses.
+                // 6. Simpan Transaksi ke Database
                 Pembayaran::create([
-                    'id_transaksi'      => $orderId,
-                    'customer_id'       => $user->id_customer,
-                    'paket_id'          => $paket->id_paket,
-                    'jumlah_token'      => $request->quantity, // Pastikan kolom ini ada di tabel pembayarans
-                    'jumlah_bayar'      => $totalHarga,
-                    'status_pembayaran' => 'menunggu', // PENTING: Status awal harus menunggu
+                    'id_transaksi' => $orderId,
+                    'customer_id' => $user->id_customer,
+                    'paket_id' => $paket->id_paket,
+                    'jumlah_bayar' => $totalHarga,
+                    'status_pembayaran' => 'menunggu',
                     'metode_pembayaran' => 'midtrans',
-                    // 'snap_token'     => $snapToken, // Opsional: Simpan jika perlu
+
+                    // --- PERBAIKAN: Menambahkan waktu_dibuat ---
+                    'waktu_dibuat' => now(),
+                    // -------------------------------------------
                 ]);
 
-                // 7. Return Token ke Frontend (JSON) agar bisa dipakai window.snap.pay
                 return response()->json(['snap_token' => $snapToken]);
 
             } catch (\Exception $e) {

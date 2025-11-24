@@ -16,12 +16,15 @@ class DaftarTesController extends Controller
 
         // Ambil semua paket dan inject status kepemilikan token
         $daftarPaket = Paket::all()->map(function ($paket) use ($user) {
-            
-            // LOGIC UTAMA: Cek apakah ada token milik user untuk paket ini yang belum dipakai
+
+            // LOGIC PERBAIKAN:
+            // Karena tidak ada kolom 'paket_id' di tabel tokens,
+            // Kita cek apakah 'id_token' DIMULAI dengan id_paket (contoh: PKT001-...)
+
             $hasToken = Token::where('customer_id', $user->id_customer)
-                             ->where('paket_id', $paket->id_paket)
-                             ->where('status', 'belum digunakan')
-                             ->exists(); // Mengembalikan true/false
+                ->where('id_token', 'like', $paket->id_paket . '-%') // <--- PERBAIKAN DISINI
+                ->where('status', 'belum digunakan')
+                ->exists();
 
             return [
                 'id_paket' => $paket->id_paket,
@@ -29,7 +32,7 @@ class DaftarTesController extends Controller
                 'harga' => (int) $paket->harga,
                 'deskripsi' => $paket->deskripsi,
                 'jumlah_karakter' => $paket->jumlah_karakter,
-                'has_token' => $hasToken, // <--- Ini yang akan dibaca React
+                'has_token' => $hasToken,
             ];
         });
 

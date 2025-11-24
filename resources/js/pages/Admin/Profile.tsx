@@ -1,198 +1,210 @@
 import DashboardLayout from '@/layouts/dashboardLayoutAdmin';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler, useRef, useState } from 'react';
+import { HiCamera, HiUser } from 'react-icons/hi';
 
+// Interface Form sesuai data Admin
 interface ProfileForm {
     nama_admin: string;
     no_telp: string;
     jenis_kelamin: string;
     email: string;
     foto: File | null;
-    _method?: string; // Diperlukan untuk trik upload file via PUT/PATCH
+    _method?: string;
 }
 
-export default function Profile() {
-    const { auth } = usePage().props as any;
+export default function ProfileAdmin() {
+    const { auth, flash } = usePage().props as any;
     const user = auth.user;
+    const success = flash?.success;
 
-    // Ref untuk input file yang disembunyikan
     const fileInputRef = useRef<HTMLInputElement>(null);
-    // State untuk preview gambar lokal sebelum di-upload
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+    // Setup Form
     const { data, setData, post, processing, errors, recentlySuccessful } = useForm<ProfileForm>({
-        nama_admin: user.name || user.nama_admin || '',
+        nama_admin: user.nama_admin || user.name || '',
         no_telp: user.no_telp || '',
         jenis_kelamin: user.jenis_kelamin || '',
         email: user.email || '',
         foto: null,
-        _method: 'PATCH',
+        _method: 'PATCH', // Wajib untuk upload file via method spoofing
     });
 
-    // Handle saat user memilih file
+    // Handle File Selection
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             setData('foto', file);
-            // Buat URL sementara untuk preview
             setPreviewImage(URL.createObjectURL(file));
         }
     };
 
+    // Handle Submit
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        // Kita gunakan post(), tapi karena ada _method: 'PATCH', Laravel akan menganggapnya PATCH.
-        // URL '/admin/updateProfile' sesuai dengan route prefix 'admin' + path '/updateProfile'
         post('/admin/updateProfile', {
             preserveScroll: true,
-            forceFormData: true, // Wajib true saat upload file
+            forceFormData: true, // Wajib true untuk upload file
             onSuccess: () => {
-                // Reset preview jika sukses (karena gambar user sudah terupdate dari server)
-                setPreviewImage(null);
+                setPreviewImage(null); // Reset preview setelah sukses
             },
         });
     };
 
-    // Helper untuk menampilkan gambar: Prioritas Preview Lokal -> Gambar DB -> Placeholder
+    // Helper Display Image
     const getProfileImage = () => {
         if (previewImage) return previewImage;
-        // Asumsi di DB disimpan sebagai path 'admins/xxx.jpg', kita perlu akses via /storage/
         if (user.foto) return `/storage/${user.foto}`;
         return null;
     };
 
     return (
         <DashboardLayout>
-            <Head title="Edit Profil" />
+            <Head title="Profile Admin" />
 
-            <div className="mb-6 flex items-center justify-between">
-                <h1 className="text-3xl font-bold text-slate-900">Pengguna</h1>
-                <div className="text-sm text-slate-500">
-                    ID: <span className="font-mono font-bold text-slate-800">{user.id_admin || user.id}</span>
+            <div className="space-y-6 font-sans">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-800">Profil Saya</h1>
+                        <p className="text-sm text-gray-500">Kelola informasi akun administrator Anda.</p>
+                    </div>
                 </div>
-            </div>
 
-            {recentlySuccessful && <div className="mb-4 rounded-lg bg-green-100 p-4 text-sm text-green-700 transition-all">✅ Perubahan berhasil disimpan!</div>}
+                {/* Alert Success */}
+                {(success || recentlySuccessful) && <div className="mb-4 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-700 shadow-sm">✅ {success || 'Perubahan berhasil disimpan!'}</div>}
 
-            <div className="grid grid-cols-1 gap-8 font-sans lg:grid-cols-3">
-                {/* --- KARTU PROFIL (KIRI) --- */}
-                <div className="space-y-8 lg:col-span-1">
-                    <div className="rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm">
-                        <div className="flex flex-col items-center">
-                            {/* AREA FOTO & UPLOAD */}
-                            <div className="group relative">
-                                <div className="mb-4 flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-yellow-50 bg-slate-100 shadow-lg">
-                                    {getProfileImage() ? <img src={getProfileImage()!} alt="Profile" className="h-full w-full object-cover" /> : <span className="text-4xl">👤</span>}
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                    {/* --- KOLOM KIRI: KARTU PROFIL --- */}
+                    <div className="space-y-6 lg:col-span-1">
+                        {/* Card Foto */}
+                        <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm">
+                            <div className="flex flex-col items-center">
+                                <div className="group relative mb-4">
+                                    <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-yellow-50 bg-gray-100 shadow-md">
+                                        {getProfileImage() ? <img src={getProfileImage()!} alt="Profile" className="h-full w-full object-cover" /> : <HiUser className="h-16 w-16 text-gray-300" />}
+                                    </div>
+
+                                    {/* Overlay Camera Icon */}
+                                    <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute right-0 bottom-0 rounded-full bg-yellow-400 p-2.5 text-white shadow-md transition-transform hover:scale-110 hover:bg-yellow-500" title="Ganti Foto">
+                                        <HiCamera className="h-5 w-5" />
+                                    </button>
                                 </div>
 
-                                {/* Input File Tersembunyi */}
                                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                                {errors.foto && <div className="mt-1 text-xs text-red-500">{errors.foto}</div>}
+
+                                <h5 className="text-xl font-bold text-gray-900">{data.nama_admin}</h5>
+                                <span className="text-sm text-gray-500">{data.email}</span>
+                                <span className="mt-2 rounded-full bg-yellow-100 px-3 py-1 text-xs font-bold text-yellow-700">Administrator</span>
                             </div>
+                        </div>
 
-                            {/* TOMBOL UBAH FOTO */}
-                            <button type="button" onClick={() => fileInputRef.current?.click()} className="mb-4 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline focus:outline-none">
-                                Ubah Foto
-                            </button>
-                            {/* Error Message untuk Foto */}
-                            {errors.foto && <div className="mb-2 text-xs text-red-500">{errors.foto}</div>}
-
-                            <h5 className="mb-1 text-xl font-bold text-gray-900">{data.nama_admin || 'Nama Admin'}</h5>
-                            <span className="text-sm text-gray-500">{data.email}</span>
+                        {/* Card Info Statis */}
+                        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                            <h4 className="mb-4 font-bold text-gray-800">Informasi Akun</h4>
+                            <div className="space-y-4">
+                                <InfoRow label="ID Admin" value={user.id_admin || `#${user.id}`} />
+                                <InfoRow label="Status" value="Aktif" />
+                                <InfoRow label="Bergabung" value={new Date(user.created_at).toLocaleDateString('id-ID')} />
+                            </div>
                         </div>
                     </div>
 
-                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                        <h5 className="mb-4 border-b border-gray-100 pb-2 text-lg font-bold text-gray-900">Detail Akun</h5>
-                        <div className="space-y-3">
-                            <div className="flex justify-between">
-                                <span className="text-sm text-gray-600">Status</span>
-                                <span className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${user.status_akun === 'aktif' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{user.status_akun || 'Aktif'}</span>
+                    {/* --- KOLOM KANAN: FORM EDIT --- */}
+                    <div className="lg:col-span-2">
+                        <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
+                            <div className="mb-6 border-b border-gray-100 pb-4">
+                                <h3 className="text-xl font-bold text-gray-800">Edit Data Diri</h3>
+                                <p className="text-sm text-gray-500">Perbarui informasi pribadi Anda di sini.</p>
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-sm text-gray-600">Gender</span>
-                                <span className="text-sm font-bold text-gray-800">{data.jenis_kelamin || '-'}</span>
-                            </div>
+
+                            <form onSubmit={submit} className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                {/* Nama Lengkap */}
+                                <Input id="nama_admin" label="Nama Lengkap" value={data.nama_admin} onChange={(e) => setData('nama_admin', e.target.value)} error={errors.nama_admin} placeholder="Masukkan nama lengkap" />
+
+                                {/* No Telepon */}
+                                <Input id="no_telp" label="Nomor Telepon" value={data.no_telp} onChange={(e) => setData('no_telp', e.target.value)} error={errors.no_telp} placeholder="08..." />
+
+                                {/* Jenis Kelamin */}
+                                <Select id="jenis_kelamin" label="Jenis Kelamin" value={data.jenis_kelamin} onChange={(e) => setData('jenis_kelamin', e.target.value)} options={['Pria', 'Wanita']} error={errors.jenis_kelamin} />
+
+                                {/* Email (Read Only) */}
+                                <div>
+                                    <label className="mb-2 block text-sm font-bold text-gray-700">Email</label>
+                                    <input type="email" className="w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-4 py-2.5 text-gray-500 focus:outline-none" value={data.email} readOnly />
+                                    <p className="mt-1 text-[10px] text-gray-400">*Email tidak dapat diubah sembarangan.</p>
+                                </div>
+
+                                {/* Tombol Simpan */}
+                                <div className="col-span-1 flex items-center justify-end pt-4 md:col-span-2">
+                                    <button type="submit" disabled={processing} className="rounded-xl bg-yellow-400 px-8 py-3 font-bold text-gray-900 shadow-md transition-all hover:bg-yellow-500 hover:shadow-lg disabled:opacity-50">
+                                        {processing ? 'Menyimpan...' : 'Simpan Perubahan'}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                    </div>
-                </div>
-
-                {/* --- FORM EDIT (KANAN) --- */}
-                <div className="lg:col-span-2">
-                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm md:p-8">
-                        <h5 className="mb-1 text-2xl font-bold text-gray-800">Edit Data Diri</h5>
-                        <p className="mb-6 text-sm text-gray-500">Perbarui informasi profil administrator Anda.</p>
-
-                        <hr className="mb-6 border-gray-100" />
-
-                        <form className="space-y-6" onSubmit={submit}>
-                            {/* Nama Admin & Jenis Kelamin */}
-                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                <div>
-                                    <label htmlFor="nama_admin" className="mb-2 block text-sm font-medium text-gray-700">
-                                        Nama Lengkap
-                                    </label>
-                                    <input
-                                        id="nama_admin"
-                                        type="text"
-                                        className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 focus:outline-none"
-                                        value={data.nama_admin}
-                                        onChange={(e) => setData('nama_admin', e.target.value)}
-                                        required
-                                    />
-                                    {errors.nama_admin && <div className="mt-1 text-xs text-red-500">{errors.nama_admin}</div>}
-                                </div>
-                                <div>
-                                    <label htmlFor="jenis_kelamin" className="mb-2 block text-sm font-medium text-gray-700">
-                                        Jenis Kelamin
-                                    </label>
-                                    <select
-                                        id="jenis_kelamin"
-                                        className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 focus:outline-none"
-                                        value={data.jenis_kelamin}
-                                        onChange={(e) => setData('jenis_kelamin', e.target.value)}
-                                    >
-                                        <option value="">Pilih Jenis Kelamin</option>
-                                        <option value="Laki-laki">Laki-laki</option>
-                                        <option value="Perempuan">Perempuan</option>
-                                    </select>
-                                    {errors.jenis_kelamin && <div className="mt-1 text-xs text-red-500">{errors.jenis_kelamin}</div>}
-                                </div>
-                            </div>
-
-                            {/* No Telp & Email */}
-                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                <div>
-                                    <label htmlFor="no_telp" className="mb-2 block text-sm font-medium text-gray-700">
-                                        No Telephone
-                                    </label>
-                                    <input
-                                        id="no_telp"
-                                        type="text"
-                                        placeholder="08..."
-                                        className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 focus:outline-none"
-                                        value={data.no_telp}
-                                        onChange={(e) => setData('no_telp', e.target.value)}
-                                    />
-                                    {errors.no_telp && <div className="mt-1 text-xs text-red-500">{errors.no_telp}</div>}
-                                </div>
-                                <div>
-                                    <label htmlFor="email" className="mb-2 block text-sm font-medium text-gray-700">
-                                        Email
-                                    </label>
-                                    <input id="email" type="email" className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-200 p-2.5 text-sm text-slate-500" value={data.email} readOnly title="Email tidak dapat diubah" />
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end pt-6">
-                                <button type="submit" disabled={processing} className="rounded-lg bg-yellow-400 px-8 py-3 text-sm font-bold text-slate-900 shadow-lg transition-all hover:bg-yellow-500 focus:ring-4 focus:ring-yellow-200 disabled:opacity-70">
-                                    {processing ? 'Menyimpan...' : 'Simpan Perubahan'}
-                                </button>
-                            </div>
-                        </form>
                     </div>
                 </div>
             </div>
         </DashboardLayout>
+    );
+}
+
+// --- REUSABLE COMPONENTS (Agar Kode Lebih Bersih) ---
+
+function Input({ label, id, type = 'text', value, onChange, error, placeholder }: { label: string; id: string; type?: string; value: any; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; error?: string; placeholder?: string }) {
+    return (
+        <div>
+            <label htmlFor={id} className="mb-2 block text-sm font-bold text-gray-700">
+                {label}
+            </label>
+            <input
+                id={id}
+                type={type}
+                className={`w-full rounded-lg border bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 shadow-sm focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:outline-none ${error ? 'border-red-500' : 'border-gray-300'}`}
+                value={value}
+                onChange={onChange}
+                placeholder={placeholder}
+            />
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+function Select({ label, id, value, onChange, options, error }: { label: string; id: string; value: any; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; options: string[]; error?: string }) {
+    return (
+        <div>
+            <label htmlFor={id} className="mb-2 block text-sm font-bold text-gray-700">
+                {label}
+            </label>
+            <div className="relative">
+                <select id={id} className={`w-full appearance-none rounded-lg border bg-white px-4 py-2.5 text-gray-900 shadow-sm focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:outline-none ${error ? 'border-red-500' : 'border-gray-300'}`} value={value} onChange={onChange}>
+                    <option value="">Pilih {label}</option>
+                    {options.map((o) => (
+                        <option key={o} value={o}>
+                            {o}
+                        </option>
+                    ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                    <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                    </svg>
+                </div>
+            </div>
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="flex justify-between border-b border-gray-50 pb-2 text-sm last:border-0 last:pb-0">
+            <span className="text-gray-500">{label}</span>
+            <span className="font-semibold text-gray-800">{value || '-'}</span>
+        </div>
     );
 }

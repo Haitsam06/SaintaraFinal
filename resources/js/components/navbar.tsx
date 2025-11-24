@@ -40,7 +40,8 @@ export default function Navbar() {
                             if (rid === 1 || rid === 2) {
                                 dashboardLink = '/admin/dashboardAdmin';
                             } else if (rid === 3) {
-                                dashboardLink = '/personal/dashboardPersonal';
+                                // --- PERBAIKAN LINK DI SINI ---
+                                dashboardLink = '/personal/dashboard';
                             } else if (rid === 4) {
                                 dashboardLink = '/instansi/dashboardInstansi';
                             }
@@ -51,7 +52,7 @@ export default function Navbar() {
                                 <Link href={dashboardLink} className="group flex items-center gap-3 rounded-full bg-gray-50 py-1 pr-4 pl-2 transition-all hover:bg-yellow-50 hover:shadow-md">
                                     {/* Foto Profile */}
                                     <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-yellow-400 bg-yellow-400 shadow-sm">
-                                        {/* --- PERBAIKAN DI SINI: Tambahkan /storage/ --- */}
+                                        {/* Pastikan path foto benar */}
                                         {user.foto ? <img src={`/storage/${user.foto}`} alt="User" className="h-full w-full object-cover" /> : <HiUser className="h-6 w-6 text-white" />}
                                     </div>
 
