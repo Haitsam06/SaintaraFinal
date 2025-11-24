@@ -9,6 +9,8 @@ use App\Http\Controllers\Instansi\InstansiProfileController;
 use App\Http\Controllers\Personal\ProfilePersonalController;
 use App\Http\Controllers\Personal\TransaksiPersonalController;
 use App\Http\Controllers\Personal\DaftarTesController;
+use App\Http\Controllers\Personal\BantuanController;
+use App\Http\Controllers\Personal\SettingPersonalController;
 use App\Http\Controllers\Admin\ProfileAdminController;
 use App\Http\Controllers\Admin\AgendaAdminController;
 use App\Http\Controllers\PublicCalendarController;
@@ -91,6 +93,17 @@ Route::middleware(['auth:customer'])->prefix('personal')->name('personal.')->gro
     // 3. PROSES BACKEND KIRIM DONASI (Baru Ditambahkan)
     // URL Akhir: /personal/donation/send
     Route::post('/donation/send', [DonationController::class, 'sendToken'])->name('donation.send');
+
+    // Route Tampilan Form Donasi ke Saintara
+    Route::get('/FormHadiahDonasiSaintara', function () {
+        return Inertia::render('Personal/FormHadiahDonasiSaintara');
+    })->name('form-hadiah-donasi-saintara');
+
+    // Route PROSES Donasi ke Saintara (Backend)
+    Route::post('/donation/saintara', [DonationController::class, 'sendToSaintara'])->name('donation.saintara');
+
+    Route::get('/bantuanPersonal', [BantuanController::class, 'index'])->name('bantuan');
+    Route::post('/bantuanPersonal', [BantuanController::class, 'store'])->name('bantuan.store');
     
     // --------------------
 
@@ -107,6 +120,18 @@ Route::middleware(['auth:customer'])->prefix('personal')->name('personal.')->gro
     })->name('form-tes');
 
     Route::post('/update-profile-personal', [ProfilePersonalController::class, 'update']);
+
+    // Route Halaman Pengaturan
+    Route::get('/settingPersonal', [SettingPersonalController::class, 'index'])
+        ->name('setting.index');
+
+    // Route Update Password (PUT)
+    Route::put('/settingPersonal/password', [SettingPersonalController::class, 'updatePassword'])
+        ->name('setting.password');
+
+    // Route Hapus Akun (DELETE) - Gunakan URL yang sama dengan index tapi method DELETE
+    Route::delete('/settingPersonal', [SettingPersonalController::class, 'destroy'])
+        ->name('setting.destroy');
 
 });
 

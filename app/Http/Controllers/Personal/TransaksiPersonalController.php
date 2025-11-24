@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;  // Wajib untuk DB Transaction
-use Illuminate\Support\Str;         // Wajib untuk Random String
-use Carbon\Carbon;                  // Wajib untuk Tanggal
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 use App\Models\Token;
 use App\Models\Pembayaran;
 use App\Models\Paket;
+use Midtrans\Config;
+use Midtrans\Snap;
 
 class TransaksiPersonalController extends Controller
 {
@@ -27,7 +29,6 @@ class TransaksiPersonalController extends Controller
         }
 
         // 1. Ambil Rincian Token per Paket
-        // Query ini mengelompokkan token yang belum dipakai berdasarkan paketnya
         $rincianToken = Token::where('customer_id', $user->id_customer)
                             ->where('status', 'belum digunakan')
                             ->join('pakets', 'tokens.paket_id', '=', 'pakets.id_paket')
@@ -35,10 +36,10 @@ class TransaksiPersonalController extends Controller
                             ->groupBy('pakets.id_paket', 'pakets.nama_paket')
                             ->get();
 
-        // Hitung total semua token dari hasil rincian di atas
+        // Hitung total semua token
         $totalToken = $rincianToken->sum('total');
 
-        // 2. Ambil Riwayat Pembayaran (Sama seperti sebelumnya)
+        // 2. Ambil Riwayat Pembayaran
         $riwayat = Pembayaran::where('customer_id', $user->id_customer)
                         ->with('paket')
                         ->latest()
@@ -49,7 +50,7 @@ class TransaksiPersonalController extends Controller
                                 'nama_paket' => $p->paket->nama_paket ?? 'Paket Tidak Dikenal',
                                 'tanggal' => $p->created_at->translatedFormat('d M Y'),
                                 'jumlah_bayar' => (int) $p->jumlah_bayar,
-                                'status' => $p->status_pembayaran,
+                                'status' => $p->status_pembayaran, // 'menunggu', 'berhasil', 'gagal'
                             ];
                         });
 
@@ -57,81 +58,87 @@ class TransaksiPersonalController extends Controller
         $daftarPaket = Paket::all();
 
         return Inertia::render('Personal/transaksi-token', [
-            'saldo_token' => $totalToken, // Tetap kirim total
-            'rincian_token' => $rincianToken, // <--- DATA BARU: Array rincian
+            'saldo_token' => $totalToken,
+            'rincian_token' => $rincianToken,
             'riwayat' => $riwayat,
             'daftar_paket' => $daftarPaket
         ]);
     }
 
     /**
-     * Memproses pembelian: Buat Invoice -> Generate Token -> Simpan
+     * Memproses checkout: Simpan 'Pending' ke DB & Minta Snap Token ke Midtrans
      */
     public function checkout(Request $request)
     {
-        // 1. Validasi Input dari React
+        // 1. Validasi Input
         $request->validate([
             'paket_id' => 'required|exists:pakets,id_paket',
             'quantity' => 'required|integer|min:1',
         ]);
 
-        // Gunakan DB Transaction agar data aman (Atomicity)
-        // Jika ada error di tengah jalan, semua perubahan dibatalkan (rollback)
+        // 2. Setup Konfigurasi Midtrans
+        Config::$serverKey = env('MIDTRANS_SERVER_KEY');
+        Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
+
+        // Gunakan Transaction untuk atomic operation
         return DB::transaction(function () use ($request) {
             $user = Auth::guard('customer')->user();
-            
-            // Ambil Data Paket untuk hitung harga
             $paket = Paket::findOrFail($request->paket_id);
+            
             $totalHarga = $paket->harga * $request->quantity;
+            
+            // 3. Buat ID Order Unik
+            // Pastikan unik di DB
+            do {
+                $orderId = 'INV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(5));
+            } while (Pembayaran::where('id_transaksi', $orderId)->exists());
 
-            // 2. Buat ID Transaksi Unik (Invoice)
-            // Format: INV-20251123-ACAK
-            $invoiceId = 'INV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(5));
+            // 4. Siapkan Parameter Request Midtrans
+            $params = [
+                'transaction_details' => [
+                    'order_id' => $orderId,
+                    'gross_amount' => (int) $totalHarga,
+                ],
+                'customer_details' => [
+                    'first_name' => $user->nama_lengkap,
+                    'email' => $user->email,
+                    'phone' => $user->no_telp,
+                ],
+                'item_details' => [
+                    [
+                        'id' => $paket->id_paket,
+                        'price' => (int) $paket->harga,
+                        'quantity' => (int) $request->quantity,
+                        'name' => $paket->nama_paket,
+                    ]
+                ]
+            ];
 
-            // Pastikan ID Invoice benar-benar unik
-            while (Pembayaran::where('id_transaksi', $invoiceId)->exists()) {
-                $invoiceId = 'INV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(5));
-            }
+            try {
+                // 5. Minta Snap Token dari Midtrans
+                $snapToken = Snap::getSnapToken($params);
 
-            // 3. Simpan Data Pembayaran (Status langsung 'berhasil' untuk simulasi)
-            $pembayaran = Pembayaran::create([
-                'id_transaksi'      => $invoiceId,
-                'customer_id'       => $user->id_customer,
-                'paket_id'          => $paket->id_paket,
-                'jumlah_bayar'      => $totalHarga,
-                'status_pembayaran' => 'berhasil', // Ceritanya langsung lunas
-                'metode_pembayaran' => 'manual_test',
-                'waktu_dibayar'     => now(),
-            ]);
-
-            // 4. LOOPING GENERATE TOKEN
-            // Membuat token sejumlah quantity yang dibeli
-            for ($i = 0; $i < $request->quantity; $i++) {
-                
-                // Format ID Token: DSR-20251123-X7K9
-                $prefix = $paket->id_paket; // DSR / STD / PRM
-                $tanggal = now()->format('Ymd');
-                $acak = strtoupper(Str::random(5));
-                $kodeToken = $prefix . '-' . $tanggal . '-' . $acak;
-
-                // Pastikan Token Unik (Cek database, kalau ada, generate ulang)
-                while(Token::where('id_token', $kodeToken)->exists()){
-                    $acak = strtoupper(Str::random(5));
-                    $kodeToken = $prefix . '-' . $tanggal . '-' . $acak;
-                }
-
-                // Simpan Token ke Database
-                Token::create([
-                    'id_token'      => $kodeToken,
-                    'pembayaran_id' => $pembayaran->id_transaksi,
-                    'customer_id'   => $user->id_customer,
-                    'paket_id'      => $paket->id_paket, // Penting agar tau ini token paket apa
-                    'status'        => 'belum digunakan',
+                // 6. Simpan Transaksi ke Database (Status: MENUNGGU / PENDING)
+                // Kita BELUM generate token di sini. Token dibuat nanti saat callback sukses.
+                Pembayaran::create([
+                    'id_transaksi'      => $orderId,
+                    'customer_id'       => $user->id_customer,
+                    'paket_id'          => $paket->id_paket,
+                    'jumlah_token'      => $request->quantity, // Pastikan kolom ini ada di tabel pembayarans
+                    'jumlah_bayar'      => $totalHarga,
+                    'status_pembayaran' => 'menunggu', // PENTING: Status awal harus menunggu
+                    'metode_pembayaran' => 'midtrans',
+                    // 'snap_token'     => $snapToken, // Opsional: Simpan jika perlu
                 ]);
-            }
 
-            // 5. Kembali ke halaman sebelumnya dengan pesan sukses
-            return redirect()->back()->with('success', 'Pembelian berhasil! Token Anda sudah aktif.');
+                // 7. Return Token ke Frontend (JSON) agar bisa dipakai window.snap.pay
+                return response()->json(['snap_token' => $snapToken]);
+
+            } catch (\Exception $e) {
+                return response()->json(['error' => 'Gagal memproses pembayaran: ' . $e->getMessage()], 500);
+            }
         });
     }
 }
