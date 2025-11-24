@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+<<<<<<< HEAD
 
 use Inertia\Inertia;
 
@@ -10,6 +11,20 @@ use App\Http\Controllers\Admin\AgendaAdminController;
 use App\Http\Controllers\Admin\KeuanganAdminController;
 use App\Http\Controllers\Admin\PengaturanController;
 use App\Http\Controllers\Admin\DashboardAdminController;
+=======
+// --- IMPORT CONTROLLER BARU ---
+use App\Http\Controllers\Personal\DonationController; 
+// ------------------------------
+use App\Http\Controllers\Instansi\InstansiProfileController;
+use App\Http\Controllers\Personal\ProfilePersonalController;
+use App\Http\Controllers\Personal\TransaksiPersonalController;
+use App\Http\Controllers\Personal\DaftarTesController;
+use App\Http\Controllers\Personal\BantuanController;
+use App\Http\Controllers\Personal\SettingPersonalController;
+use App\Http\Controllers\Admin\ProfileAdminController;
+use App\Http\Controllers\Admin\AgendaAdminController;
+use App\Http\Controllers\PublicCalendarController;
+>>>>>>> 784db1578cd0acf150c33b172f12c267d77ba29c
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PublicCalendarController;
 use App\Http\Controllers\Personal\ProfilePersonalController;
@@ -51,8 +66,12 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // --- GROUP PERSONAL USER (CUSTOMER) ---
 // Middleware: auth:customer
-Route::prefix('personal')->name('personal.')->group(function () {
+Route::middleware(['auth:customer'])->prefix('personal')->name('personal.')->group(function () {
 
+<<<<<<< HEAD
+=======
+    // URL: /personal/dashboardPersonal
+>>>>>>> 784db1578cd0acf150c33b172f12c267d77ba29c
     Route::get('/dashboardPersonal', function () {
         return Inertia::render('Personal/dashboard-personal');
     })->name('dashboard');
@@ -62,22 +81,54 @@ Route::prefix('personal')->name('personal.')->group(function () {
     })->name('profile');
 
     Route::put('/profile/update', [ProfilePersonalController::class, 'update'])->name('personal.profile.update');
+<<<<<<< HEAD
 
     Route::get('/daftarTesPersonal', function () {
         return Inertia::render('Personal/daftar-tes');
     })->name('daftar-tes');
+=======
+>>>>>>> 784db1578cd0acf150c33b172f12c267d77ba29c
 
-    Route::get('/transaksiTokenPersonal', function () {
-        return Inertia::render('Personal/transaksi-token');
-    })->name('transaksi-token');
+    Route::get('/daftarTesPersonal', [DaftarTesController::class, 'index'])->name('daftar-tes');
+
+    Route::get('/transaksiTokenPersonal', [TransaksiPersonalController::class, 'index'])
+    ->name('transaksi-token');
+
+    // Route untuk checkout transaksi token
+    Route::post('/transaksi/checkout', [TransaksiPersonalController::class, 'checkout'])->name('transaksi.checkout');
 
     Route::get('/hasilTesPersonal', function () {
         return Inertia::render('Personal/results');
     })->name('results');
 
+    // --- FITUR DONASI ---
+    
+    // 1. Halaman History/List Donasi
     Route::get('/hadiahDonasiPersonal', function () {
         return Inertia::render('Personal/hadiah-donasi');
     })->name('hadiah-donasi');
+
+    // 2. Halaman Form Donasi (Tampilan React tadi)
+    Route::get('/FormHadiahDonasi', function () {
+        return Inertia::render('Personal/FormHadiahDonasi');
+    })->name('form-hadiah-donasi');
+
+    // 3. PROSES BACKEND KIRIM DONASI (Baru Ditambahkan)
+    // URL Akhir: /personal/donation/send
+    Route::post('/donation/send', [DonationController::class, 'sendToken'])->name('donation.send');
+
+    // Route Tampilan Form Donasi ke Saintara
+    Route::get('/FormHadiahDonasiSaintara', function () {
+        return Inertia::render('Personal/FormHadiahDonasiSaintara');
+    })->name('form-hadiah-donasi-saintara');
+
+    // Route PROSES Donasi ke Saintara (Backend)
+    Route::post('/donation/saintara', [DonationController::class, 'sendToSaintara'])->name('donation.saintara');
+
+    Route::get('/bantuanPersonal', [BantuanController::class, 'index'])->name('bantuan');
+    Route::post('/bantuanPersonal', [BantuanController::class, 'store'])->name('bantuan.store');
+    
+    // --------------------
 
     Route::get('/bantuanPersonal', function () {
         return Inertia::render('Personal/bantuan');
@@ -93,16 +144,34 @@ Route::prefix('personal')->name('personal.')->group(function () {
 
     Route::post('/update-profile-personal', [ProfilePersonalController::class, 'update']);
 
+    // Route Halaman Pengaturan
+    Route::get('/settingPersonal', [SettingPersonalController::class, 'index'])
+        ->name('setting.index');
+
+    // Route Update Password (PUT)
+    Route::put('/settingPersonal/password', [SettingPersonalController::class, 'updatePassword'])
+        ->name('setting.password');
+
+    // Route Hapus Akun (DELETE) - Gunakan URL yang sama dengan index tapi method DELETE
+    Route::delete('/settingPersonal', [SettingPersonalController::class, 'destroy'])
+        ->name('setting.destroy');
+
 });
 
 // --- GROUP ADMIN ---
 // Middleware: auth:admin
 Route::prefix('admin')->name('admin.')->group(function () {
 
+<<<<<<< HEAD
     // ============================================================
     //  PERUBAHAN DISINI: Menggunakan Controller, bukan function()
     // ============================================================
     Route::get('/dashboardAdmin', [DashboardAdminController::class, 'index'])->name('dashboard');
+=======
+    Route::get('/dashboardAdmin', function () {
+        return Inertia::render('Admin/dashboard-admin');
+    })->name('dashboard');
+>>>>>>> 784db1578cd0acf150c33b172f12c267d77ba29c
 
 
     // Profile
@@ -191,14 +260,21 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 // --- GROUP INSTANSI ---
 // Middleware: auth:instansi
+<<<<<<< HEAD
 Route::prefix('instansi')->name('instansi.')->group(function () {
+=======
+Route::middleware(['auth:instansi'])->prefix('instansi')->name('instansi.')->group(function () {
+
+>>>>>>> 784db1578cd0acf150c33b172f12c267d77ba29c
     Route::get('/dashboardInstansi', function () {
         return Inertia::render('Instansi/Dashboard');
     })->name('dashboard');
 
-    Route::get('/profilInstansi', function () {
-        return Inertia::render('Instansi/Profile');
-    })->name('profil');
+    Route::get('/profilInstansi', [InstansiProfileController::class, 'edit'])
+        ->name('profil');
+
+    Route::post('/profilInstansi', [InstansiProfileController::class, 'update'])
+        ->name('profil.update');
 
     Route::get('/tesInstansi', function () {
         return Inertia::render('Instansi/DaftarTes');

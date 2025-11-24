@@ -11,7 +11,11 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('pakets', function (Blueprint $table) {
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> 784db1578cd0acf150c33b172f12c267d77ba29c
             // paket : bronze(brz), silver(slv), gold(gld)
             $table->string('id_paket')->primary(); // PK: id_paket [varchar]
             $table->string('nama_paket');

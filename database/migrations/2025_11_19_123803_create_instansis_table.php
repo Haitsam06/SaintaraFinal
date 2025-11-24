@@ -25,8 +25,8 @@ return new class extends Migration {
             $table->string('pic_name')->nullable();
             $table->string('bidang')->nullable();
             $table->string('status_akun')->default('aktif');
-            $table->text('foto')->nullable();
             $table->date('tanggal_dibuat')->nullable();
+            $table->text('foto')->nullable();
 
             $table->timestamps();
         });

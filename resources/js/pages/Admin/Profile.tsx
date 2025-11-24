@@ -26,7 +26,7 @@ export default function Profile() {
         jenis_kelamin: user.jenis_kelamin || '',
         email: user.email || '',
         foto: null,
-        _method: 'PATCH', // <--- WAJIB ADA: Agar Laravel membaca ini sebagai request PATCH
+        _method: 'PATCH',
     });
 
     // Handle saat user memilih file

@@ -1,5 +1,5 @@
-import InstansiLayout from '@/layouts/dashboardLayoutInstansi'; // Import layout baru
-import { Head } from '@inertiajs/react';
+import InstansiLayout from '@/layouts/dashboardLayoutInstansi';
+import { Head, usePage, Link } from '@inertiajs/react';
 import {
     HiCreditCard,
     HiOutlineCheckCircle,
@@ -8,31 +8,57 @@ import {
     HiOutlineUsers,
 } from 'react-icons/hi';
 
+type TestPackage = {
+    id: number;
+    slug: string;
+    title: string;
+    description: string | null;
+    token_cost: number;
+    type: 'personal' | 'team' | 'gift' | string;
+};
+
+type Summary = {
+    token_tersisa: number;
+    tes_selesai_bulan_ini: number;
+};
+
+type PageProps = {
+    tests: TestPackage[];
+    summary: Summary;
+};
+
 export default function Tes() {
-    // Data Dummy untuk Daftar Tes
-    const testList = [
-        {
-            title: 'Tes Karakter Personal',
-            desc: 'Analisis mendalam 9 tipe karakter untuk individu.',
-            cost: '1 Token',
-            icon: HiOutlineUser,
-            color: 'text-blue-600 bg-blue-100',
-        },
-        {
-            title: 'Tes Karakter Tim',
-            desc: 'Melihat dinamika tim dan peta karakter dalam 1 grup.',
-            cost: '5 Token',
-            icon: HiOutlineUsers,
-            color: 'text-green-600 bg-green-100',
-        },
-        {
-            title: 'Tes Gift (Hadiah)',
-            desc: 'Membuat voucher tes yang bisa dibagikan sebagai hadiah.',
-            cost: '1 Token',
-            icon: HiOutlineGift,
-            color: 'text-orange-600 bg-orange-100',
-        },
-    ];
+    const { props } = usePage<PageProps>();
+    const tests = props.tests ?? [];
+    const summary = props.summary ?? {
+        token_tersisa: 0,
+        tes_selesai_bulan_ini: 0,
+    };
+
+    // mapping backend -> struktur lama testList
+    const testList = tests.map((pkg) => {
+        // pilih icon & warna berdasarkan type
+        let icon = HiOutlineUser;
+        let color = 'text-blue-600 bg-blue-100';
+
+        if (pkg.type === 'team') {
+            icon = HiOutlineUsers;
+            color = 'text-green-600 bg-green-100';
+        } else if (pkg.type === 'gift') {
+            icon = HiOutlineGift;
+            color = 'text-orange-600 bg-orange-100';
+        }
+
+        return {
+            id: pkg.id,
+            title: pkg.title,
+            desc: pkg.description ?? '',
+            // ⬇️ di sini pakai token_cost, bukan token → tidak undefined lagi
+            cost: `${pkg.token_cost} Token`,
+            icon,
+            color,
+        };
+    });
 
     return (
         <InstansiLayout>
@@ -60,7 +86,7 @@ export default function Tes() {
                                 Token Tersisa
                             </p>
                             <h3 className="mt-1 text-3xl font-extrabold text-gray-900">
-                                150 Token
+                                {summary.token_tersisa} Token
                             </h3>
                         </div>
                     </div>
@@ -73,7 +99,7 @@ export default function Tes() {
                                 Tes Selesai (Bulan Ini)
                             </p>
                             <h3 className="mt-1 text-3xl font-extrabold text-gray-900">
-                                42 Tes
+                                {summary.tes_selesai_bulan_ini} Tes
                             </h3>
                         </div>
                     </div>
@@ -88,7 +114,7 @@ export default function Tes() {
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                         {testList.map((test, index) => (
                             <div
-                                key={index}
+                                key={test.id ?? index}
                                 className="flex transform flex-col justify-between rounded-2xl border border-gray-200 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-saintara-yellow hover:shadow-xl"
                             >
                                 {/* Bagian Atas: Info */}
@@ -114,9 +140,15 @@ export default function Tes() {
                                     <p className="mb-4 text-2xl font-bold text-gray-900">
                                         {test.cost}
                                     </p>
-                                    <button className="w-full rounded-full bg-saintara-black px-4 py-3 font-bold text-white transition-colors hover:bg-gray-800 focus:ring-2 focus:ring-saintara-yellow focus:ring-offset-2 focus:outline-none">
+
+                                    {/* Pindah ke form tes instansi + bawa test_package_id */}
+                                    <Link
+                                        href={`/instansi/formTesInstansi?test_package_id=${test.id}`}
+                                        as="button"
+                                        className="w-full rounded-full bg-saintara-black px-4 py-3 font-bold text-white transition-colors hover:bg-gray-800 focus:ring-2 focus:ring-saintara-yellow focus:ring-offset-2 focus:outline-none text-center"
+                                    >
                                         Gunakan Paket
-                                    </button>
+                                    </Link>
                                 </div>
                             </div>
                         ))}
