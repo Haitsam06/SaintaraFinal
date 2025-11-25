@@ -14,7 +14,6 @@ use App\Http\Controllers\Personal\DaftarTesController;
 use App\Http\Controllers\Personal\DonationController;
 use App\Http\Controllers\Personal\BantuanController;
 use App\Http\Controllers\Personal\SettingPersonalController;
-// use App\Http\Controllers\Perso
 
 // Admin Controllers
 use App\Http\Controllers\Admin\PenggunaAdminController;
