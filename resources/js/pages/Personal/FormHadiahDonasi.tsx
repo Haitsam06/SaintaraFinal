@@ -153,7 +153,6 @@ export default function DonationForm() {
                                 )}
                             </button>
                         </div>
-
                     </form>
                 </div>
             </div>

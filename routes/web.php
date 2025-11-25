@@ -1,7 +1,7 @@
 <?php
 
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 // --- IMPORT CONTROLLERS ---
 use App\Http\Controllers\AuthController;
@@ -14,12 +14,20 @@ use App\Http\Controllers\Personal\DaftarTesController;
 use App\Http\Controllers\Personal\DonationController;
 use App\Http\Controllers\Personal\BantuanController;
 use App\Http\Controllers\Personal\SettingPersonalController;
-// use App\Http\Controllers\Personal\PaymentCallbackController; // Tidak dipakai lagi karena diganti TransaksiPersonalController
+// use App\Http\Controllers\Perso
 
-// Instansi & Admin Controllers
-use App\Http\Controllers\Instansi\InstansiProfileController;
+// Admin Controllers
+use App\Http\Controllers\Admin\PenggunaAdminController;
 use App\Http\Controllers\Admin\ProfileAdminController;
 use App\Http\Controllers\Admin\AgendaAdminController;
+use App\Http\Controllers\Admin\KeuanganAdminController;
+use App\Http\Controllers\Admin\PengaturanController;
+use App\Http\Controllers\Admin\DashboardAdminController;
+use App\Http\Controllers\Admin\SupportAdminController;
+
+// Instansi Controllers
+use App\Http\Controllers\Instansi\InstansiProfileController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -83,7 +91,7 @@ Route::middleware(['auth:customer'])->prefix('personal')->name('personal.')->gro
     Route::get('/daftarTesPersonal', [DaftarTesController::class, 'index'])->name('daftar-tes');
     Route::get('/formTes', function () {
         return Inertia::render('Personal/form-tes-personal');
-    })->name('form-tes');
+    })->name('ujian.start');
 
     // --- TRANSAKSI & TOKEN ---
     Route::get('/transaksiTokenPersonal', [TransaksiPersonalController::class, 'index'])->name('transaksi-token');
@@ -124,57 +132,120 @@ Route::middleware(['auth:customer'])->prefix('personal')->name('personal.')->gro
 // =========================================================================
 // GROUP ADMIN
 // Middleware: auth:admin
-// =========================================================================
-Route::prefix('admin')->name('admin.')->group(function () {
+// --- GROUP ADMIN ---
+// Middleware: auth:admin (Wajib Login sebagai Admin)
+Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(function () {
 
-    Route::get('/dashboardAdmin', function () {
-        return Inertia::render('Admin/dashboard-admin');
-    })->name('dashboard');
+    // 1. DASHBOARD
+    // Menggunakan Controller (Disarankan)
+    Route::get('/dashboardAdmin', [DashboardAdminController::class, 'index'])->name('dashboard');
 
+    // Opsi Alternatif (Jika Controller belum siap, uncomment baris bawah dan comment baris atas):
+    // Route::get('/dashboardAdmin', function () { return Inertia::render('Admin/dashboard-admin'); })->name('dashboard');
+
+    // 2. PROFILE ADMIN
     Route::get('/profileAdmin', function () {
         return Inertia::render('Admin/Profile');
     })->name('profile');
 
-    Route::post('/updateProfile', [ProfileAdminController::class, 'update'])->name('profile.update');
+    // Update Profile (PATCH)
+    Route::patch('/updateProfile', [ProfileAdminController::class, 'update'])->name('profile.update');
 
+    // 3. AGENDA
     Route::get('/agendaAdmin', [AgendaAdminController::class, 'index'])->name('agenda');
     Route::post('/agendaAdmin', [AgendaAdminController::class, 'store'])->name('agenda.store');
 
-    Route::get('/penggunaAdmin', function () {
-        return Inertia::render('Admin/Pengguna');
-    })->name('pengguna');
+    // 4. MANAJEMEN PENGGUNA (Personal & Instansi)
+    Route::prefix('pengguna')->name('pengguna.')->group(function () {
+        // Halaman Index
+        Route::get('/personal', [PenggunaAdminController::class, 'indexPersonal'])->name('personal');
+        Route::get('/instansi', [PenggunaAdminController::class, 'indexInstansi'])->name('instansi');
 
-    Route::get('/keuanganAdmin', function () {
-        return Inertia::render('Admin/Keuangan');
-    })->name('keuangan');
+        // Redirect default /pengguna ke /pengguna/personal
+        Route::get('/', function () {
+            return redirect()->route('admin.pengguna.personal');
+        });
 
+        // CRUD Pengguna
+        Route::post('/', [PenggunaAdminController::class, 'store'])->name('store');
+        Route::put('/{id}', [PenggunaAdminController::class, 'update'])->name('update');
+        Route::delete('/{id}', [PenggunaAdminController::class, 'destroy'])->name('destroy');
+    });
+
+    // 5. MANAJEMEN TOKEN
+    Route::prefix('token')->name('token')->group(function () { // Grouping agar lebih rapi
+        Route::get('/', [App\Http\Controllers\Admin\TokenAdminController::class, 'index']); // name: admin.token
+        Route::post('/', [App\Http\Controllers\Admin\TokenAdminController::class, 'store'])->name('.store');
+        Route::put('/{id}', [App\Http\Controllers\Admin\TokenAdminController::class, 'update'])->name('.update');
+        Route::delete('/{id}', [App\Http\Controllers\Admin\TokenAdminController::class, 'destroy'])->name('.destroy');
+    });
+
+    // 6. KEUANGAN
+    Route::prefix('keuangan')->name('keuangan.')->group(function () {
+        Route::get('/pemasukan', [KeuanganAdminController::class, 'indexPemasukan'])->name('pemasukan');
+        Route::get('/pengeluaran', [KeuanganAdminController::class, 'indexPengeluaran'])->name('pengeluaran');
+        Route::get('/laporan', [KeuanganAdminController::class, 'indexLaporan'])->name('laporan');
+        Route::get('/laporan/cetak', [KeuanganAdminController::class, 'printLaporan'])->name('laporan.print');
+        Route::get('/gaji', [KeuanganAdminController::class, 'indexGaji'])->name('gaji');
+
+        Route::post('/store', [KeuanganAdminController::class, 'store'])->name('store');
+        Route::post('/gaji', [KeuanganAdminController::class, 'storeGaji'])->name('gaji.store');
+
+        Route::put('/update/{id}', [KeuanganAdminController::class, 'update'])->name('update');
+        Route::put('/gaji/{id}', [KeuanganAdminController::class, 'updateGaji'])->name('gaji.update');
+
+        Route::delete('/gaji/{id}', [KeuanganAdminController::class, 'destroyGaji'])->name('gaji.destroy');
+        Route::delete('/destroy/{id}', [KeuanganAdminController::class, 'destroy'])->name('destroy');
+
+        Route::get('/', function () {
+            return redirect()->route('admin.keuangan.pemasukan');
+        });
+    });
+
+    // 7. TIM & BANTUAN (Menu Samping)
     Route::get('/teamAdmin', function () {
         return Inertia::render('Admin/Tim');
     })->name('team');
 
-    Route::get('/supportAdmin', function () {
-        return Inertia::render('Admin/Bantuan');
-    })->name('support');
+    Route::get('/supportAdmin', [SupportAdminController::class, 'index'])->name('support');
 
-    Route::get('/settingsAdmin', function () {
-        return Inertia::render('Admin/Pengaturan');
-    })->name('settings');
+    // 8. PENGATURAN SYSTEM
+    Route::prefix('pengaturan')->name('pengaturan.')->group(function () {
+        // Halaman Utama Pengaturan
+        Route::get('/', [PengaturanController::class, 'index'])->name('index');
+
+        // Tab Umum
+        Route::get('/umum', [PengaturanController::class, 'umum'])->name('umum');
+        Route::put('/umum', [PengaturanController::class, 'updateUmum'])->name('umum.update');
+
+        // Tab Tim (CRUD Tim di Pengaturan)
+        Route::get('/tim', [PengaturanController::class, 'indexTim'])->name('tim');
+        Route::post('/tim', [PengaturanController::class, 'storeTim'])->name('tim.store');
+        Route::put('/tim/{id}', [PengaturanController::class, 'updateTim'])->name('tim.update');
+        Route::delete('/tim/{id}', [PengaturanController::class, 'destroyTim'])->name('tim.destroy');
+
+        // Tab Paket (CRUD Paket)
+        Route::get('/paket', [PengaturanController::class, 'indexPaket'])->name('paket');
+        Route::post('/paket', [PengaturanController::class, 'storePaket'])->name('paket.store');
+        Route::put('/paket/{id}', [PengaturanController::class, 'updatePaket'])->name('paket.update');
+        Route::delete('/paket/{id}', [PengaturanController::class, 'destroyPaket'])->name('paket.destroy');
+    });
 
 });
 
-
-// =========================================================================
-// GROUP INSTANSI
+// --- GROUP INSTANSI ---
 // Middleware: auth:instansi
-// =========================================================================
 Route::middleware(['auth:instansi'])->prefix('instansi')->name('instansi.')->group(function () {
 
     Route::get('/dashboardInstansi', function () {
         return Inertia::render('Instansi/Dashboard');
     })->name('dashboard');
 
-    Route::get('/profilInstansi', [InstansiProfileController::class, 'edit'])->name('profil');
-    Route::post('/profilInstansi', [InstansiProfileController::class, 'update'])->name('profil.update');
+    Route::get('/profilInstansi', [InstansiProfileController::class, 'edit'])
+        ->name('profil');
+
+    Route::post('/profilInstansi', [InstansiProfileController::class, 'update'])
+        ->name('profil.update');
 
     Route::get('/tesInstansi', function () {
         return Inertia::render('Instansi/DaftarTes');
@@ -203,7 +274,6 @@ Route::middleware(['auth:instansi'])->prefix('instansi')->name('instansi.')->gro
     Route::get('/formTesInstansi', function () {
         return Inertia::render('Instansi/form-tes-instansi');
     })->name('form-tes-instansi');
-
 });
 
 require __DIR__ . '/settings.php';

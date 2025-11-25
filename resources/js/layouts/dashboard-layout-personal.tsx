@@ -6,7 +6,7 @@ import {
     HiSupport, HiUserCircle, HiMenuAlt2 
 } from 'react-icons/hi';
 
-// Daftar Menu
+// --- DAFTAR MENU (DISESUAIKAN DENGAN WEB.PHP) ---
 const menuItems = [
     { name: 'Beranda', href: '/personal/dashboardPersonal', icon: HiHome },
     { name: 'Profil Saya', href: '/personal/profilePersonal', icon: HiUserCircle },
@@ -60,6 +60,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 {/* Menu Navigasi */}
                 <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
                     {menuItems.map((item) => {
+                        // Cek apakah URL saat ini diawali dengan href menu (untuk active state)
                         const isActive = url.startsWith(item.href);
                         return (
                             <Link 

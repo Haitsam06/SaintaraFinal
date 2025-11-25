@@ -32,7 +32,9 @@ class Pembayaran extends Model
         'jumlah_token',
         'url_pembayaran',
         'waktu_dibayar',
-        'waktu_kadaluarsa'
+        'waktu_kadaluarsa',
+        'created_at',
+        'updated_at',
     ];
 
     protected $casts = [

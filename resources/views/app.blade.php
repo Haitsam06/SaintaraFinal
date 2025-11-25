@@ -52,6 +52,12 @@
         @inertiaHead
     </head>
     <body class="font-sans antialiased">
+        {{-- 1. Inertia Root: Aplikasi React utama di-render di sini --}}
         @inertia
+
+        {{-- 2. MODAL PORTAL ROOT (WAJIB DILUAR @inertia) --}}
+        {{-- Elemen ini digunakan oleh ReactDOM.createPortal untuk merender modal di luar hierarki DOM utama. --}}
+        <div id="modal-root"></div>
+        
     </body>
 </html>

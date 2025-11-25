@@ -11,17 +11,29 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('keuangans', function (Blueprint $table) {
-            $table->uuid('id_keuangan')->primary(); // PK: UUID
+            $table->uuid('id_keuangan')->primary();
             $table->enum('tipe', ['pemasukan', 'pengeluaran']);
-            $table->bigInteger('jumlah'); // Jumlah uang
+
+            // Tambahkan Kategori agar bisa filter khusus 'gaji'
+            $table->string('kategori')->default('umum'); // Contoh: 'gaji', 'operasional', 'penjualan'
+
+            $table->bigInteger('jumlah'); // Total yang dibayarkan
             $table->text('deskripsi');
             $table->date('tanggal_transaksi');
 
-            // Relasi opsional: menghubungkan ke tabel pembayaran untuk pemasukan
-            $table->string('transaksi_id')->nullable();
-            $table->foreign('transaksi_id')->references('id_transaksi')->on('pembayarans')->onDelete('set null');
+            // Tambahkan Status (Lunas/Pending)
+            $table->string('status_pembayaran')->default('lunas');
 
-            // Relasi opsional: siapa yang mencatat/bertanggung jawab
+            // Tambahkan kolom JSON untuk menyimpan rincian (Gaji Pokok, Bonus, Potongan)
+            // Agar tidak perlu buat banyak kolom terpisah
+            $table->json('detail')->nullable();
+
+            // Relasi
+            $table->string('transaksi_id')->nullable();
+
+            // Admin ID di sini berfungsi sebagai:
+            // 1. Pencatat transaksi (jika kategori umum)
+            // 2. Penerima Gaji (jika kategori gaji)
             $table->string('admin_id')->nullable();
             $table->foreign('admin_id')->references('id_admin')->on('admins')->onDelete('set null');
 

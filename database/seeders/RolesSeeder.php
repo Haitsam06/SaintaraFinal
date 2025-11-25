@@ -9,8 +9,7 @@ class RolesSeeder extends Seeder
 {
     public function run()
     {
-        // Kosongkan tabel roles dulu agar tidak error duplicate entry jika di-seed ulang
-        // DB::table('roles')->truncate(); // Opsional, hati-hati jika pakai foreign key constraint
+        DB::table('roles')->delete();
 
         DB::table('roles')->insert([
             [

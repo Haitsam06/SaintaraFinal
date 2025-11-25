@@ -18,7 +18,7 @@ export default function Bantuan() {
     const [faqOpen, setFaqOpen] = useState<number | null>(0);
     
     // Ambil flash message dari props
-    const { flash } = usePage<PageProps>().props; 
+    const { flash } = usePage<PageProps>().props;
 
     const toggleFAQ = (index: number) => {
         setFaqOpen(faqOpen === index ? null : index);
@@ -46,12 +46,12 @@ export default function Bantuan() {
             a: "Token adalah alat tukar yang Anda gunakan untuk mengakses tes berbayar di platform Saintara.",
         },
         {
-            q: "Bagaimana cara membaca hasil tes saya?",
-            a: "Setelah tes selesai, hasil akan otomatis tersedia di menu Hasil Tes di dashboard Anda.",
+            q: 'Bagaimana cara membaca hasil tes saya?',
+            a: 'Setelah tes selesai, hasil akan otomatis tersedia di menu Hasil Tes di dashboard Anda.',
         },
         {
-            q: "Apa data pribadi saya aman?",
-            a: "Kami menjaga privasi Anda dan tidak membagikan data pribadi apa pun kepada pihak ketiga tanpa izin.",
+            q: 'Apa data pribadi saya aman?',
+            a: 'Kami menjaga privasi Anda dan tidak membagikan data pribadi apa pun kepada pihak ketiga tanpa izin.',
         },
     ];
 

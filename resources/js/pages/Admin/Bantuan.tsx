@@ -1,170 +1,168 @@
-import AdminDashboardLayout from '@/layouts/dashboardLayoutAdmin'; // Pastikan path layout benard
+import AdminDashboardLayout from '@/layouts/dashboardLayoutAdmin';
 import { Head } from '@inertiajs/react';
-import { useState } from 'react';
-import { HiLocationMarker } from 'react-icons/hi'; // Ikon untuk lokasi
+import { HiAnnotation, HiCheckCircle, HiClock, HiDotsHorizontal, HiSearch } from 'react-icons/hi';
 
-export default function Support() {
-    const [activeTab, setActiveTab] = useState('Komplain');
+// --- TYPES ---
+interface Customer {
+    id_customer: string;
+    name: string;
+    email: string;
+}
 
-    // ==========================================
-    // 1. KONTEN: PERSETUJUAN
-    // ==========================================
-    const renderPersetujuan = () => (
-        <div className="animate-fade-in space-y-6">
-            <h3 className="text-lg font-bold text-blue-900">Permohonan Persetujuan (1)</h3>
+interface Ticket {
+    id: number;
+    customer_id: string | null;
+    subject: string;
+    category: string | null;
+    description: string;
+    status: 'pending' | 'diproses' | 'selesai';
+    created_at: string;
+    updated_at: string;
+    customer: Customer | null;
+}
 
-            {/* Card Permohonan */}
-            <div className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-gray-50 p-6 shadow-sm md:flex-row md:items-center">
-                <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
-                        <HiLocationMarker className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                        <h4 className="text-lg font-bold text-blue-900">Penawaran Kerja Sama - PT Maju Jaya</h4>
-                        <p className="mt-1 text-sm text-gray-500">Diajukan oleh: Tim Marketing | 5 Oktober 2025</p>
-                    </div>
-                </div>
-                <div className="flex gap-3">
-                    <button className="rounded-lg border border-gray-300 px-6 py-2 text-sm font-bold text-gray-600 transition-colors hover:bg-gray-100">Tolak</button>
-                    <button className="rounded-lg bg-green-500 px-6 py-2 text-sm font-bold text-white shadow-md transition-colors hover:bg-green-600">Setuju</button>
-                </div>
-            </div>
-        </div>
-    );
+interface Stats {
+    baru: number;
+    diproses: number;
+    selesai: number;
+}
 
-    // ==========================================
-    // 2. KONTEN: KOMPLAIN (DEFAULT TAB)
-    // ==========================================
-    const renderKomplain = () => (
-        <div className="animate-fade-in space-y-8">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                <div className="rounded-2xl border border-orange-100 bg-orange-50 p-6">
-                    <p className="mb-2 text-sm font-bold text-orange-800">Tiket Baru</p>
-                    <h3 className="text-3xl font-extrabold text-orange-900">5</h3>
-                </div>
-                <div className="rounded-2xl border border-blue-100 bg-blue-50 p-6">
-                    <p className="mb-2 text-sm font-bold text-blue-800">Sedang Diproses</p>
-                    <h3 className="text-3xl font-extrabold text-blue-900">12</h3>
-                </div>
-                <div className="rounded-2xl border border-green-100 bg-green-50 p-6">
-                    <p className="mb-2 text-sm font-bold text-green-800">Selesai</p>
-                    <h3 className="text-3xl font-extrabold text-green-900">90</h3>
-                </div>
-            </div>
+interface SupportProps {
+    stats: Stats;
+    tickets: Ticket[];
+}
 
-            {/* Table Komplain */}
-            <div className="overflow-x-auto rounded-xl border border-gray-200">
-                <table className="w-full min-w-[700px]">
-                    <thead className="bg-gray-100 text-xs font-extrabold tracking-wider text-blue-900 uppercase">
-                        <tr>
-                            <th className="px-6 py-4 text-left">ID Tiket</th>
-                            <th className="px-6 py-4 text-left">Pelapor</th>
-                            <th className="px-6 py-4 text-left">Subjek</th>
-                            <th className="px-6 py-4 text-center">Prioritas</th>
-                            <th className="px-6 py-4 text-center">Status</th>
-                            <th className="px-6 py-4 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 bg-white text-sm font-medium text-gray-700">
-                        <tr>
-                            <td className="px-6 py-4">#T-00125</td>
-                            <td className="px-6 py-4">user@gmail.com (Personal)</td>
-                            <td className="px-6 py-4 font-bold text-gray-900">Tidak bisa download hasil tes</td>
-                            <td className="px-6 py-4 text-center">
-                                <span className="rounded-md bg-red-100 px-3 py-1 text-xs font-bold text-red-600">Tinggi</span>
-                            </td>
-                            <td className="px-6 py-4 text-center">
-                                <span className="rounded-md bg-blue-100 px-3 py-1 text-xs font-bold text-blue-600">Diproses</span>
-                            </td>
-                            <td className="px-6 py-4 text-center">
-                                <button className="text-xs font-bold text-yellow-500 hover:text-yellow-600">Cek Detail</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    );
+export default function Support({ stats, tickets }: SupportProps) {
+    // Format ID Tiket
+    const formatTicketId = (id: number) => `#T-${String(id).padStart(5, '0')}`;
 
-    // ==========================================
-    // 3. KONTEN: PERBAIKAN
-    // ==========================================
-    const renderPerbaikan = () => (
-        <div className="animate-fade-in space-y-6">
-            <h3 className="text-lg font-bold text-blue-900">Status Perbaikan Komplain</h3>
-            <div className="overflow-x-auto rounded-xl border border-gray-200">
-                <table className="w-full min-w-[700px]">
-                    <thead className="bg-gray-100 text-xs font-extrabold tracking-wider text-blue-900 uppercase">
-                        <tr>
-                            <th className="px-6 py-4 text-left">ID Tiket</th>
-                            <th className="px-6 py-4 text-left">Subjek</th>
-                            <th className="px-6 py-4 text-left">Penanggung Jawab</th>
-                            <th className="px-6 py-4 text-left">Status Perbaikan</th>
-                            <th className="px-6 py-4 text-left">Tanggal Selesai</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 bg-white text-sm font-medium text-gray-700">
-                        <tr>
-                            <td className="px-6 py-4">#T-00125</td>
-                            <td className="px-6 py-4">Tidak bisa download hasil tes</td>
-                            <td className="px-6 py-4">Bayu Subaya</td>
-                            <td className="px-6 py-4">
-                                <span className="rounded bg-yellow-50 px-2 py-1 font-bold text-yellow-600">Investigasi</span>
-                            </td>
-                            <td className="px-6 py-4">-</td>
-                        </tr>
-                        <tr>
-                            <td className="px-6 py-4">#T-00124</td>
-                            <td className="px-6 py-4">Voucher tidak bisa dipakai</td>
-                            <td className="px-6 py-4">Tim Marketing</td>
-                            <td className="px-6 py-4">
-                                <span className="rounded bg-green-50 px-2 py-1 font-bold text-green-600">Selesai</span>
-                            </td>
-                            <td className="px-6 py-4">4 Okt 2025</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    );
-
-    // Daftar Tab
-    const tabs = ['Persetujuan', 'Komplain', 'Perbaikan'];
+    // Helper Warna Status
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case 'pending':
+                return 'bg-orange-100 text-orange-700 border-orange-200';
+            case 'diproses':
+                return 'bg-blue-100 text-blue-700 border-blue-200';
+            case 'selesai':
+                return 'bg-green-100 text-green-700 border-green-200';
+            default:
+                return 'bg-gray-100 text-gray-700 border-gray-200';
+        }
+    };
 
     return (
         <AdminDashboardLayout>
             <Head title="Bantuan & Layanan" />
 
-            <div className="space-y-8 font-poppins">
-                <h2 className="text-3xl font-bold text-blue-900">Bantuan & Layanan</h2>
+            <div className="space-y-6 font-sans">
+                {/* HEADER */}
+                <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-800">Pusat Bantuan</h1>
+                        <p className="text-sm text-gray-500">Kelola tiket komplain dan pertanyaan dari pengguna.</p>
+                    </div>
 
-                {/* Tab Container (Card Putih Besar) */}
-                <div className="min-h-[600px] rounded-[2.5rem] bg-white p-8 shadow-sm">
-                    {/* Tab Navigasi (Tengah) */}
-                    <div className="mb-10 flex justify-center">
-                        <div className="flex gap-6 md:gap-12">
-                            {tabs.map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={`rounded-2xl border-2 px-8 py-3 text-sm font-bold transition-all ${
-                                        activeTab === tab
-                                            ? 'scale-105 transform border-yellow-400 bg-yellow-400 text-gray-900 shadow-md'
-                                            : 'border-yellow-400 bg-white text-gray-900 hover:bg-yellow-50'
-                                    } `}
-                                >
-                                    {tab}
-                                </button>
-                            ))}
+                    {/* Search Bar */}
+                    <div className="relative w-full md:w-72">
+                        <input type="text" placeholder="Cari ID Tiket atau User..." className="w-full rounded-xl border-none bg-white py-2.5 pr-10 pl-4 text-sm text-gray-600 shadow-sm ring-1 ring-gray-200 focus:ring-2 focus:ring-yellow-400" />
+                        <div className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400">
+                            <HiSearch className="h-5 w-5" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* STATS CARDS */}
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    {/* Tiket Baru */}
+                    <div className="relative overflow-hidden rounded-2xl border border-orange-100 bg-white p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs font-bold tracking-wider text-orange-600 uppercase">Tiket Baru (Pending)</p>
+                                <h3 className="mt-2 text-3xl font-extrabold text-gray-900">{stats.baru}</h3>
+                            </div>
+                            <div className="rounded-full bg-orange-50 p-3 text-orange-500">
+                                <HiAnnotation className="h-6 w-6" />
+                            </div>
                         </div>
                     </div>
 
-                    {/* Render Konten */}
-                    <div className="mt-8">
-                        {activeTab === 'Persetujuan' && renderPersetujuan()}
-                        {activeTab === 'Komplain' && renderKomplain()}
-                        {activeTab === 'Perbaikan' && renderPerbaikan()}
+                    {/* Diproses */}
+                    <div className="relative overflow-hidden rounded-2xl border border-blue-100 bg-white p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs font-bold tracking-wider text-blue-600 uppercase">Sedang Diproses</p>
+                                <h3 className="mt-2 text-3xl font-extrabold text-gray-900">{stats.diproses}</h3>
+                            </div>
+                            <div className="rounded-full bg-blue-50 p-3 text-blue-500">
+                                <HiClock className="h-6 w-6" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Selesai */}
+                    <div className="relative overflow-hidden rounded-2xl border border-green-100 bg-white p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs font-bold tracking-wider text-green-600 uppercase">Selesai</p>
+                                <h3 className="mt-2 text-3xl font-extrabold text-gray-900">{stats.selesai}</h3>
+                            </div>
+                            <div className="rounded-full bg-green-50 p-3 text-green-500">
+                                <HiCheckCircle className="h-6 w-6" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* TABLE LIST */}
+                <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                    <div className="w-full overflow-x-auto">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="bg-yellow-400 text-gray-900">
+                                <tr>
+                                    <th className="px-6 py-4 font-bold">ID Tiket</th>
+                                    <th className="px-6 py-4 font-bold">Pelapor</th>
+                                    <th className="px-6 py-4 font-bold">Subjek</th>
+                                    <th className="px-6 py-4 font-bold">Status</th>
+                                    <th className="px-6 py-4 text-center font-bold">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 text-gray-600">
+                                {tickets.length > 0 ? (
+                                    tickets.map((ticket) => (
+                                        <tr key={ticket.id} className="transition-colors hover:bg-gray-50">
+                                            <td className="px-6 py-4 font-mono font-bold text-gray-800">{formatTicketId(ticket.id)}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-gray-900">{ticket.customer ? ticket.customer.name : 'User Tidak Dikenal'}</span>
+                                                    <span className="text-xs text-gray-400">{ticket.customer ? ticket.customer.email : '-'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="block font-medium text-gray-900">{ticket.subject}</span>
+                                                <span className="block max-w-[200px] truncate text-xs text-gray-500">{ticket.description}</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold uppercase ${getStatusBadge(ticket.status)}`}>{ticket.status}</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <button className="inline-flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                                                    <HiDotsHorizontal className="h-5 w-5" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-400 italic">
+                                            <div className="flex flex-col items-center justify-center gap-2">
+                                                <HiAnnotation className="h-10 w-10 opacity-20" />
+                                                <p>Belum ada tiket bantuan masuk.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
