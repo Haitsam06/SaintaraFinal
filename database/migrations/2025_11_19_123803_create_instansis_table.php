@@ -15,7 +15,7 @@ return new class extends Migration {
 
             $table->string('id_instansi')->primary(); // ID Custom
 
-            // ... (Sisa kolom biarkan sama seperti sebelumnya) ...
+           
             $table->foreignId('role_id')->nullable()->constrained('roles')->onDelete('set null');
             $table->string('nama_instansi');
             $table->string('email')->unique();

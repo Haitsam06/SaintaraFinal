@@ -2,6 +2,13 @@
 
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
+
+// --- IMPORT CONTROLLER BARU ---
+use App\Http\Controllers\Personal\DonationController;
+// ------------------------------
+use App\Http\Controllers\Instansi\InstansiProfileController;
+use App\Http\Controllers\Instansi\InstansiTesController;
+use App\Http\Controllers\Instansi\DashboardInstansiController; // <--- TAMBAH INI
 use App\Http\Controllers\Personal\ProfilePersonalController;
 use App\Http\Controllers\Personal\TransaksiPersonalController;
 use App\Http\Controllers\Personal\DaftarTesController;
@@ -39,7 +46,6 @@ Route::middleware('guest')->group(function () {
 
     Route::post('/register', [AuthController::class, 'store'])->name('register.store');
 
-    // Ini adalah rute yang benar dan mengirim data
     Route::get('/kalender-agenda', [PublicCalendarController::class, 'index'])->name('public.calendar');
 });
 
@@ -47,115 +53,51 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 
 // --- GROUP PERSONAL USER (CUSTOMER) ---
-// Middleware: auth:customer
-Route::prefix('personal')->name('personal.')->group(function () {
+// ... (BIARKAN SAMA seperti punyamu, tidak diubah) ...
 
-    // URL: /personal/dashboardPersonal
-    // Route Name: personal.dashboard
-    // File: pages/Personal/dashboard-personal.tsx
-    Route::get('/dashboardPersonal', function () {
-        return Inertia::render('Personal/dashboard-personal');
-    })->name('dashboard');
 
-    Route::get('/profilePersonal', function () {
-        return Inertia::render('Personal/Profile');
-    })->name('profile');
+/* ===========================
+ *   GROUP INSTANSI
+ * =========================== */
+Route::middleware(['auth:instansi'])->prefix('instansi')->name('instansi.')->group(function () {
 
-    Route::put('/profile/update', [ProfilePersonalController::class, 'update'])->name('personal.profile.update');
+    // ==== DASHBOARD INSTANSI (PAKAI CONTROLLER) ====
+    Route::get('/dashboardInstansi', [DashboardInstansiController::class, 'index'])
+        ->name('dashboard');
 
-    Route::get('/daftarTesPersonal', [DaftarTesController::class, 'index'])->name('daftar-tes');
+    Route::get('/profilInstansi', [InstansiProfileController::class, 'edit'])
+        ->name('profil');
 
-    Route::get('/transaksiTokenPersonal', [TransaksiPersonalController::class, 'index'])
-    ->name('transaksi-token');
+    Route::post('/profilInstansi', [InstansiProfileController::class, 'update'])
+        ->name('profil.update');
 
-    // Route untuk checkout transaksi token'
-    Route::post('/transaksi/checkout', [TransaksiPersonalController::class, 'checkout'])->name('transaksi.checkout');
+    /*
+    |--------------------------------------------------------------------------
+    | TES INSTANSI (pakai InstansiTesController)
+    |--------------------------------------------------------------------------
+    */
 
-    Route::get('/hasilTesPersonal', function () {
-        return Inertia::render('Personal/results');
-    })->name('results');
+    // Halaman daftar paket tes instansi
+    Route::get('/tesInstansi', [InstansiTesController::class, 'index'])
+        ->name('tes');
 
-    Route::get('/hadiahDonasiPersonal', function () {
-        return Inertia::render('Personal/hadiah-donasi');
-    })->name('hadiah-donasi');
+    // Form input peserta (query ?paket_id=INST_...)
+    Route::get('/formTesInstansi', [InstansiTesController::class, 'form'])
+        ->name('formTesInstansi');
 
-    Route::get('/bantuanPersonal', function () {
-        return Inertia::render('Personal/bantuan');
-    })->name('bantuan');
+    // Proses upload Excel + input manual peserta
+    Route::post('/uploadExcel', [InstansiTesController::class, 'uploadExcel'])
+        ->name('uploadExcel');
 
-    Route::get('/settingPersonal', function () {
-        return Inertia::render('Personal/setting');
-    })->name('setting');
+    // ✅ ROUTE BARU: Download template form peserta untuk tombol "Unduh Form Tes"
+    Route::get('/download-form-tes', [InstansiTesController::class, 'downloadFormTemplate'])
+        ->name('tes.downloadForm');
 
-    Route::get('/formTes', function () {
-        return Inertia::render('Personal/form-tes-personal');
-    })->name('form-tes');
-
-    Route::post('/update-profile-personal', [ProfilePersonalController::class, 'update']);
-
-});
-
-// --- GROUP ADMIN ---
-// Middleware: auth:admin
-Route::prefix('admin')->name('admin.')->group(function () {
-
-    // URL: /admin/dashboardAdmin
-    // Route Name: admin.dashboard (Fix: hapus prefix 'admin.' di name())
-    // File: pages/Admin/dashboard-admin.tsx
-    Route::get('/dashboardAdmin', function () {
-        return Inertia::render('Admin/dashboard-admin');
-    })->name('dashboard');
-
-    Route::get('/profileAdmin', function () {
-        return Inertia::render('Admin/Profile');
-    })->name('profile');
-
-    Route::post('/updateProfile', [ProfileAdminController::class, 'update'])->name('profile.update');
-
-    Route::get('/agendaAdmin', [AgendaAdminController::class, 'index'])->name('agenda');
-
-    Route::post('/agendaAdmin', [AgendaAdminController::class, 'store'])->name('agenda.store');
-
-    Route::get('/penggunaAdmin', function () {
-        return Inertia::render('Admin/Pengguna');
-    })->name('pengguna');
-
-    Route::get('/keuanganAdmin', function () {
-        return Inertia::render('Admin/Keuangan');
-    })->name('keuangan');
-
-    Route::get('/teamAdmin', function () {
-        return Inertia::render('Admin/Tim');
-    })->name('team');
-
-    Route::get('/supportAdmin', function () {
-        return Inertia::render('Admin/Bantuan');
-    })->name('support');
-
-    Route::get('/settingsAdmin', function () {
-        return Inertia::render('Admin/Pengaturan');
-    })->name('settings');
-
-});
-
-// --- GROUP INSTANSI ---
-// Middleware: auth:instansi
-Route::prefix('instansi')->name('instansi.')->group(function () {
-
-    // URL: /instansi/dashboardInstansi
-    // Route Name: instansi.dashboard
-    // File: pages/Instansi/Dashboard.tsx (Perhatikan huruf D besar sesuai screenshot)
-    Route::get('/dashboardInstansi', function () {
-        return Inertia::render('Instansi/Dashboard');
-    })->name('dashboard');
-
-    Route::get('/profilInstansi', function () {
-        return Inertia::render('Instansi/Profile');
-    })->name('profil');
-
-    Route::get('/tesInstansi', function () {
-        return Inertia::render('Instansi/DaftarTes');
-    })->name('daftar_tes');
+    /*
+    |--------------------------------------------------------------------------
+    | ROUTE INSTANSI LAIN (tidak diubah)
+    |--------------------------------------------------------------------------
+    */
 
     Route::get('/transaksiInstansi', function () {
         return Inertia::render('Instansi/Transaksi');
@@ -176,11 +118,18 @@ Route::prefix('instansi')->name('instansi.')->group(function () {
     Route::get('/pengaturanInstansi', function () {
         return Inertia::render('Instansi/Pengaturan');
     })->name('pengaturan');
-
-    Route::get('/formTesInstansi', function () {
-        return Inertia::render('Instansi/form-tes-instansi');
-    })->name('form-tes-instansi');
-
 });
+
+/*
+|--------------------------------------------------------------------------
+| ROUTE DOWNLOAD FILE PESERTA (TANPA AUTH)
+|--------------------------------------------------------------------------
+| Link ini yang dikirim ke WhatsApp, supaya bisa diakses dari HP admin
+| tanpa harus login ke akun instansi.
+*/
+Route::get(
+    '/instansi/download-peserta/{filename}',
+    [InstansiTesController::class, 'downloadPeserta']
+)->name('instansi.downloadPeserta');
 
 require __DIR__ . '/settings.php';

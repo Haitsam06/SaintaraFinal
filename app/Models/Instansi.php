@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable; // <--- PENTING: Ganti ini
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens; // <--- PENTING: Tambah ini
+use Laravel\Sanctum\HasApiTokens;
 
 class Instansi extends Authenticatable
 {
@@ -41,7 +41,7 @@ class Instansi extends Authenticatable
 
     // 5. Casting password agar otomatis di-hash (Laravel 10+)
     protected $casts = [
-        'password' => 'hashed',
+        'password'       => 'hashed',
         'tanggal_dibuat' => 'date',
     ];
 }

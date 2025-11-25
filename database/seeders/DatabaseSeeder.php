@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             AdminsSeeder::class,
             CustomersSeeder::class,
             InstansisSeeder::class,
+            PaketsSeeder ::class,
         ]);
     }
     /**
