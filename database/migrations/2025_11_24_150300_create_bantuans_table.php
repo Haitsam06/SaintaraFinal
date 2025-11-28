@@ -22,6 +22,12 @@ return new class extends Migration
                   ->on('customers')
                   ->onDelete('set null');
 
+            $table->string('instansi_id')->nullable();
+            $table->foreign('instansi_id')
+                  ->references('id_instansi')
+                  ->on('instansi')
+                  ->onDelete('set null');
+
             $table->string('subject');
             $table->string('category');
             $table->text('description');

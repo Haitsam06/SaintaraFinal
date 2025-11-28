@@ -28,6 +28,7 @@ class BantuanController extends Controller
         $user = Auth::guard('customer')->user();
 
         Bantuan::create([
+            'instansi_id' => null,
             'customer_id' => $user ? $user->id_customer : null,
             'subject'     => $request->subject,
             'category'    => $request->category,

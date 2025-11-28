@@ -43,8 +43,8 @@ export default function Dashboard() {
                         {/* Section Info Tambahan (Optional) */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100">
-                                <h4 className="font-bold text-blue-800 mb-2">Fitur Baru!</h4>
-                                <p className="text-sm text-blue-600">Kini Anda bisa mengirim token sebagai hadiah kepada teman.</p>
+                                <h4 className="font-bold text-blue-800 mb-2">Fitur Hadiah!</h4>
+                                <p className="text-sm text-blue-600">Anda bisa mengirim token sebagai hadiah kepada teman.</p>
                             </div>
                             <div className="bg-purple-50 p-5 rounded-2xl border border-purple-100">
                                 <h4 className="font-bold text-purple-800 mb-2">Butuh Bantuan?</h4>
