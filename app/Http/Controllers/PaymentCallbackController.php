@@ -1,11 +1,8 @@
 <?php
 
-namespace App\Http\Controllers\Personal;
+namespace App\Http\Controllers; // Sebaiknya taruh di Controller utama, bukan di folder Personal
 
-// --- [PENTING] BARIS INI WAJIB ADA ---
-use App\Http\Controllers\Controller; 
-// -------------------------------------
-
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Pembayaran;
 use App\Models\Token;
@@ -25,7 +22,7 @@ class PaymentCallbackController extends Controller
         Config::$is3ds = true;
 
         try {
-            // 2. Tangkap Notifikasi dari Midtrans
+            // 2. Tangkap Notifikasi
             $notif = new Notification();
         } catch (\Exception $e) {
             return response()->json(['message' => 'Invalid notification'], 400);
@@ -43,45 +40,42 @@ class PaymentCallbackController extends Controller
             return response()->json(['message' => 'Order not found'], 404);
         }
 
-        // Jika sudah sukses sebelumnya, jangan diproses lagi (Idempotency)
+        // Cek Idempotency (Agar tidak diproses dua kali)
         if ($pembayaran->status_pembayaran == 'berhasil') {
             return response()->json(['message' => 'Already paid'], 200);
         }
 
-        // 4. Tentukan Status Transaksi
+        // 4. Tentukan Status
         $status = null;
-
         if ($transactionStatus == 'capture') {
             if ($type == 'credit_card') {
-                if ($fraud == 'challenge') {
-                    $status = 'menunggu';
-                } else {
-                    $status = 'berhasil';
-                }
+                $status = ($fraud == 'challenge') ? 'menunggu' : 'berhasil';
             }
         } else if ($transactionStatus == 'settlement') {
-            $status = 'berhasil'; // LUNAS
+            $status = 'berhasil';
         } else if ($transactionStatus == 'pending') {
             $status = 'menunggu';
         } else if ($transactionStatus == 'deny' || $transactionStatus == 'expire' || $transactionStatus == 'cancel') {
             $status = 'gagal';
         }
 
-        // 5. Simpan Status & Generate Token (Jika Berhasil)
+        // 5. Simpan Status & Generate Token
         DB::beginTransaction();
         try {
+            // Update Status Pembayaran
             $pembayaran->update([
-                'status_pembayaran' => $status
+                'status_pembayaran' => $status,
+                'waktu_dibayar'     => ($status == 'berhasil') ? now() : null,
             ]);
 
-            // === LOGIC GENERATE TOKEN ===
+            // === LOGIC GENERATE TOKEN (UNIVERSAL) ===
             if ($status == 'berhasil') {
-                // Loop sebanyak jumlah token yang dibeli
                 for ($i = 0; $i < $pembayaran->jumlah_token; $i++) {
                     
-                    // Generate ID Token Unik
-                    $prefix = $pembayaran->paket_id; // DSR/STD/PRM
+                    // Generate ID Unik
+                    $prefix = $pembayaran->paket_id; 
                     $tanggal = now()->format('Ymd');
+                    
                     do {
                         $acak = strtoupper(Str::random(5));
                         $kodeToken = $prefix . '-' . $tanggal . '-' . $acak;
@@ -91,8 +85,14 @@ class PaymentCallbackController extends Controller
                     Token::create([
                         'id_token'      => $kodeToken,
                         'pembayaran_id' => $pembayaran->id_transaksi,
-                        'customer_id'   => $pembayaran->customer_id,
                         'paket_id'      => $pembayaran->paket_id,
+                        
+                        // 👇 KUNCI PERUBAHAN DI SINI 👇
+                        // Kita ambil langsung dari data pembayaran.
+                        // Jika yang beli Instansi, maka customer_id otomatis null (dan sebaliknya)
+                        'customer_id'   => $pembayaran->customer_id, 
+                        'instansi_id'   => $pembayaran->instansi_id, 
+                        
                         'status'        => 'belum digunakan',
                         'tglPemakaian'  => null
                     ]);
@@ -104,7 +104,8 @@ class PaymentCallbackController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Error processing: ' . $e->getMessage()], 500);
+            \Log::error("Payment Callback Error: " . $e->getMessage()); // Log error untuk debugging
+            return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
 }

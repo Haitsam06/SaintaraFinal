@@ -7,6 +7,9 @@ use Inertia\Inertia;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PublicCalendarController;
 
+// [BARU] Import Universal Payment Callback
+use App\Http\Controllers\PaymentCallbackController; 
+
 // 1. Personal Controllers
 use App\Http\Controllers\Personal\ProfilePersonalController;
 use App\Http\Controllers\Personal\TransaksiPersonalController;
@@ -27,9 +30,10 @@ use App\Http\Controllers\Admin\TokenAdminController;
 
 // 3. Instansi Controllers
 use App\Http\Controllers\Instansi\InstansiProfileController;
-use App\Http\Controllers\Instansi\SettingInstansiController; // <--- BARU
-use App\Http\Controllers\Instansi\InstansiTesController; // <--- JANGAN LUPA INI
-use App\Http\Controllers\Instansi\BantuanInstansiController; // <--- BARU
+use App\Http\Controllers\Instansi\SettingInstansiController;
+use App\Http\Controllers\Instansi\InstansiTesController;
+use App\Http\Controllers\Instansi\BantuanInstansiController;
+use App\Http\Controllers\Instansi\TransaksiInstansiController;
 
 
 /*
@@ -46,8 +50,10 @@ Route::get('/test-web', function () {
     return 'Web Loaded';
 });
 
-// --- WEBHOOK MIDTRANS ---
-Route::post('/payment/notification', [TransaksiPersonalController::class, 'callback']);
+// --- WEBHOOK MIDTRANS (UNIVERSAL) ---
+// Mengarah ke Controller baru yang bisa handle Personal & Instansi
+Route::post('/payment/notification', [PaymentCallbackController::class, 'handle'])
+    ->name('midtrans.notification'); 
 
 
 // --- BAGIAN AUTHENTICATION (GUEST) ---
@@ -234,10 +240,12 @@ Route::middleware(['auth:instansi'])->prefix('instansi')->name('instansi.')->gro
         return Inertia::render('Instansi/form-tes-instansi');
     })->name('form_tes'); 
 
-    Route::get('/transaksiInstansi', function () {
-        return Inertia::render('Instansi/Transaksi');
-    })->name('transaksi');
+    // --- TRANSAKSI & TOKEN INSTANSI ---
+    // Route ini sudah diperbaiki mengarah ke Controller Instansi yang benar
+    Route::get('/transaksiInstansi', [TransaksiInstansiController::class, 'index'])->name('transaksi');
+    Route::post('/transaksi/checkout', [TransaksiInstansiController::class, 'checkout'])->name('transaksi.checkout');
 
+    // --- HASIL TES ---
     Route::get('/hasilInstansi', function () {
         return Inertia::render('Instansi/Hasil');
     })->name('hasil');

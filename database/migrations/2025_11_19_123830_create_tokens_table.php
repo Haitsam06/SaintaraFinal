@@ -11,27 +11,37 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('tokens', function (Blueprint $table) {
-            // 1. Primary Key (String Unik: DSR-20251122-XXX)
+            // 1. Primary Key
             $table->string('id_token')->primary(); 
 
             // 2. Foreign Key ke PEMBAYARAN
-            // Pastikan id_transaksi di tabel pembayarans tipe datanya STRING/VARCHAR
             $table->string('pembayaran_id'); 
             $table->foreign('pembayaran_id')
                   ->references('id_transaksi')
                   ->on('pembayarans')
                   ->onDelete('cascade');
 
-            // 3. Foreign Key ke CUSTOMER (Nullable / Boleh Kosong untuk Stok)
-            // Pastikan id_customer di tabel customers tipe datanya STRING/VARCHAR
+            // ==========================================================
+            // 3. KEPEMILIKAN TOKEN (DUAL USER)
+            // ==========================================================
+            
+            // A. Milik Personal (Nullable)
             $table->string('customer_id')->nullable(); 
             $table->foreign('customer_id')
                   ->references('id_customer')
                   ->on('customers')
+                  ->onDelete('set null'); // Jika user dihapus, history token tetap ada (tanpa pemilik)
+
+            // B. Milik Instansi (Baru & Nullable)
+            $table->string('instansi_id')->nullable(); 
+            $table->foreign('instansi_id')
+                  ->references('id_instansi')
+                  ->on('instansi') // Pastikan nama tabel di database 'instansi' (sesuai Model kamu)
                   ->onDelete('set null');
 
-            // 4. Foreign Key ke PAKET (INI YANG KURANG TADI)
-            // Tipe STRING karena id_paket kamu isinya 'DSR', 'STD', 'PRM'
+            // ==========================================================
+            
+            // 4. Foreign Key ke PAKET
             $table->string('paket_id'); 
             $table->foreign('paket_id')
                   ->references('id_paket')
@@ -41,10 +51,9 @@ return new class extends Migration {
             // 5. Status & Waktu
             $table->enum('status', ['digunakan', 'belum digunakan', 'kadaluarsa'])->default('belum digunakan');
             
-            // Menggunakan timestamp agar mencatat Jam:Menit:Detik pemakaian
+            // Mencatat Jam:Menit:Detik pemakaian
             $table->timestamp('tglPemakaian')->nullable();
 
-            // created_at otomatis jadi Tanggal Beli
             $table->timestamps(); 
         });
     }
