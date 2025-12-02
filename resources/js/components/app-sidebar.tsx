@@ -10,16 +10,22 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
 import AppLogo from './app-logo';
 
+// SESUAIKAN URL INI DENGAN ROUTE DASHBOARD YANG KAMU MAU
+// Contoh yang valid (sesuai web.php):
+// const DASHBOARD_URL = '/personal/dashboardPersonal';
+// const DASHBOARD_URL = '/admin/dashboardAdmin';
+// const DASHBOARD_URL = '/instansi/dashboardInstansi';
+const DASHBOARD_URL = '/personal/dashboardPersonal';
+
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
-        href: dashboard(),
+        href: DASHBOARD_URL,
         icon: LayoutGrid,
     },
 ];
@@ -44,7 +50,8 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
+                            {/* Logo juga mengarah ke URL dashboard yang sama */}
+                            <Link href={DASHBOARD_URL} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
