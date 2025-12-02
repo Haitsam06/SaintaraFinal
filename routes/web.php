@@ -8,7 +8,12 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PublicCalendarController;
 
 // [BARU] Import Universal Payment Callback
-use App\Http\Controllers\PaymentCallbackController; 
+use App\Http\Controllers\PaymentCallbackController;
+
+// controller verifikasi OTP
+use App\Http\Controllers\VerifyOtpController;
+// controller Reset Password
+use App\Http\Controllers\PasswordResetController;
 
 // 1. Personal Controllers
 use App\Http\Controllers\Personal\ProfilePersonalController;
@@ -34,7 +39,7 @@ use App\Http\Controllers\Instansi\SettingInstansiController;
 use App\Http\Controllers\Instansi\InstansiTesController;
 use App\Http\Controllers\Instansi\BantuanInstansiController;
 use App\Http\Controllers\Instansi\TransaksiInstansiController;
-
+use App\Http\Controllers\Instansi\DashboardInstansiController; // <<< TAMBAHAN
 
 /*
 |--------------------------------------------------------------------------
@@ -51,10 +56,8 @@ Route::get('/test-web', function () {
 });
 
 // --- WEBHOOK MIDTRANS (UNIVERSAL) ---
-// Mengarah ke Controller baru yang bisa handle Personal & Instansi
 Route::post('/payment/notification', [PaymentCallbackController::class, 'handle'])
-    ->name('midtrans.notification'); 
-
+    ->name('midtrans.notification');
 
 // --- BAGIAN AUTHENTICATION (GUEST) ---
 Route::middleware('guest')->group(function () {
@@ -73,8 +76,26 @@ Route::middleware('guest')->group(function () {
     Route::get('/kalender-agenda', [PublicCalendarController::class, 'index'])->name('public.calendar');
 });
 
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+// LUPA PASSWORD
+Route::get('/forgot-password', [PasswordResetController::class, 'requestForm'])
+    ->name('password.request');
 
+Route::post('/forgot-password', [PasswordResetController::class, 'sendCode'])
+    ->name('password.email');   // dipakai email.form()
+
+// <-- UBAH NAMA ROUTE INI, JANGAN 'password.reset' -->
+Route::get('/reset-password', [PasswordResetController::class, 'showResetForm'])
+    ->name('password.reset.form');
+
+Route::post('/reset-password', [PasswordResetController::class, 'reset'])
+    ->name('password.update');
+
+// VERIFIKASI OTP
+Route::get('/verify-otp', [VerifyOtpController::class, 'showForm'])->name('verify.form');
+Route::post('/verify-otp', [VerifyOtpController::class, 'verify'])->name('verify.check');
+Route::post('/resend-otp', [VerifyOtpController::class, 'resend'])->name('verify.resend');
+
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // =========================================================================
 // GROUP PERSONAL USER (CUSTOMER)
@@ -92,7 +113,7 @@ Route::middleware(['auth:customer'])->prefix('personal')->name('personal.')->gro
         return Inertia::render('Personal/Profile');
     })->name('profile');
     Route::put('/profile/update', [ProfilePersonalController::class, 'update'])->name('profile.update');
-    Route::post('/update-profile-personal', [ProfilePersonalController::class, 'update']); 
+    Route::post('/update-profile-personal', [ProfilePersonalController::class, 'update']);
 
     // --- DAFTAR TES ---
     Route::get('/daftarTesPersonal', [DaftarTesController::class, 'index'])->name('daftar-tes');
@@ -134,7 +155,6 @@ Route::middleware(['auth:customer'])->prefix('personal')->name('personal.')->gro
     Route::delete('/settingPersonal', [SettingPersonalController::class, 'destroy'])->name('setting.destroy');
 });
 
-
 // =========================================================================
 // GROUP ADMIN
 // Middleware: auth:admin
@@ -158,7 +178,9 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
     Route::prefix('pengguna')->name('pengguna.')->group(function () {
         Route::get('/personal', [PenggunaAdminController::class, 'indexPersonal'])->name('personal');
         Route::get('/instansi', [PenggunaAdminController::class, 'indexInstansi'])->name('instansi');
-        Route::get('/', function () { return redirect()->route('admin.pengguna.personal'); });
+        Route::get('/', function () {
+            return redirect()->route('admin.pengguna.personal');
+        });
 
         Route::post('/', [PenggunaAdminController::class, 'store'])->name('store');
         Route::put('/{id}', [PenggunaAdminController::class, 'update'])->name('update');
@@ -187,7 +209,9 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
         Route::put('/gaji/{id}', [KeuanganAdminController::class, 'updateGaji'])->name('gaji.update');
         Route::delete('/gaji/{id}', [KeuanganAdminController::class, 'destroyGaji'])->name('gaji.destroy');
         Route::delete('/destroy/{id}', [KeuanganAdminController::class, 'destroy'])->name('destroy');
-        Route::get('/', function () { return redirect()->route('admin.keuangan.pemasukan'); });
+        Route::get('/', function () {
+            return redirect()->route('admin.keuangan.pemasukan');
+        });
     });
 
     // 7. TIM & BANTUAN
@@ -199,7 +223,7 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
     // 8. PENGATURAN SYSTEM
     Route::prefix('pengaturan')->name('pengaturan.')->group(function () {
         Route::get('/', [PengaturanController::class, 'index'])->name('index');
-        
+
         Route::get('/umum', [PengaturanController::class, 'umum'])->name('umum');
         Route::put('/umum', [PengaturanController::class, 'updateUmum'])->name('umum.update');
 
@@ -215,7 +239,6 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
     });
 });
 
-
 // =========================================================================
 // GROUP INSTANSI
 // Middleware: auth:instansi
@@ -223,25 +246,29 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
 Route::middleware(['auth:instansi'])->prefix('instansi')->name('instansi.')->group(function () {
 
     // --- DASHBOARD ---
-    Route::get('/dashboardInstansi', function () {
-        return Inertia::render('Instansi/Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboardInstansi', [DashboardInstansiController::class, 'index'])
+        ->name('dashboard');
 
     // --- PROFIL ---
     Route::get('/profilInstansi', [InstansiProfileController::class, 'edit'])->name('profil');
     Route::post('/profilInstansi', [InstansiProfileController::class, 'update'])->name('profil.update');
 
     // --- FITUR UTAMA ---
-    Route::get('/tesInstansi', function () {
-        return Inertia::render('Instansi/DaftarTes');
-    })->name('daftar_tes');
+    Route::get('/tesInstansi', [InstansiTesController::class, 'index'])->name('daftar_tes');
 
-    Route::get('/formTesInstansi', function () {
-        return Inertia::render('Instansi/form-tes-instansi');
-    })->name('form_tes'); 
+    Route::get('/formTesInstansi', [InstansiTesController::class, 'form'])->name('form_tes');
+
+    // Proses upload peserta (Excel + input manual)
+    Route::post('/uploadPeserta', [InstansiTesController::class, 'uploadExcel'])->name('uploadPeserta');
+
+    // Download template form peserta instansi
+    Route::get('/downloadFormTemplate', [InstansiTesController::class, 'downloadFormTemplate'])->name('downloadFormTemplate');
+
+    // Cek token sebelum submit
+    Route::post('/checkTokenTesInstansi', [InstansiTesController::class, 'checkToken'])
+        ->name('checkTokenTesInstansi');
 
     // --- TRANSAKSI & TOKEN INSTANSI ---
-    // Route ini sudah diperbaiki mengarah ke Controller Instansi yang benar
     Route::get('/transaksiInstansi', [TransaksiInstansiController::class, 'index'])->name('transaksi');
     Route::post('/transaksi/checkout', [TransaksiInstansiController::class, 'checkout'])->name('transaksi.checkout');
 
@@ -261,9 +288,7 @@ Route::middleware(['auth:instansi'])->prefix('instansi')->name('instansi.')->gro
     Route::get('/settingInstansi', [SettingInstansiController::class, 'index'])->name('Pengaturan.index');
     Route::put('/settingInstansi/password', [SettingInstansiController::class, 'updatePassword'])->name('Pengaturan.password');
     Route::delete('/settingInstansi', [SettingInstansiController::class, 'destroy'])->name('Pengaturan.destroy');
-    
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -273,7 +298,6 @@ Route::middleware(['auth:instansi'])->prefix('instansi')->name('instansi.')->gro
 Route::get(
     '/instansi/download-peserta/{filename}',
     [InstansiTesController::class, 'downloadPeserta']
-    )->name('instansi.downloadPeserta');
-
+)->name('instansi.downloadPeserta');
 
 require __DIR__ . '/settings.php';

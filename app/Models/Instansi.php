@@ -32,6 +32,12 @@ class Instansi extends Authenticatable
         'bidang',
         'status_akun',
         'foto',
+        // Tambahan OTP + reset password
+        'verification_code',
+        'verification_code_expires_at',
+        'reset_password_code',
+        'reset_password_expires_at',
+        'email_verified_at',
     ];
 
     // 4. Sembunyikan password saat return JSON
@@ -39,10 +45,13 @@ class Instansi extends Authenticatable
         'password',
     ];
 
-    // 5. Casting password agar otomatis di-hash (Laravel 10+)
+    // 5. Casting field
     protected $casts = [
-        'password'       => 'hashed',
-        'tanggal_dibuat' => 'date',
+        'password'                     => 'hashed',   // Laravel 10+
+        'tanggal_dibuat'               => 'date',
+        'verification_code_expires_at' => 'datetime',
+        'reset_password_expires_at'    => 'datetime',
+        'email_verified_at'            => 'datetime',
     ];
 
     protected $appends = ['id', 'name'];

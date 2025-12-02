@@ -2,20 +2,17 @@
 
 import InstansiLayout from '@/layouts/dashboardLayoutInstansi';
 import { Head, usePage } from '@inertiajs/react';
-import { FaDownload } from 'react-icons/fa';
 import { HiOutlineArrowDown } from 'react-icons/hi';
 import React from 'react';
 import {
-    PieChart,
-    Pie,
-    Cell,
-    Tooltip,
     ResponsiveContainer,
     BarChart,
     Bar,
     XAxis,
     YAxis,
     CartesianGrid,
+    Tooltip,
+    LabelList,
 } from 'recharts';
 
 /* ========= TIPE DATA ========= */
@@ -48,15 +45,16 @@ interface PageProps {
     hasilTes?: any[];
     pieData?: any[];
     orgData?: any[];
+    instansi_name?: string;
+    instansi_tagline?: string;
     [key: string]: any;
 }
 
 /* ========= WARNA ========= */
 
 const PIE_COLORS = ['#22C55E', '#2563EB', '#FACC15', '#FB923C', '#A855F7', '#14B8A6'];
-const BAR_COLOR = '#2563EB';
 
-/* ========= ELEGANT PIE CHART ========= */
+/* ========= ELEGANT PIE CHART ala ADMIN ========= */
 
 type ElegantPieChartProps = {
     data: PieSlice[];
@@ -64,7 +62,7 @@ type ElegantPieChartProps = {
 };
 
 const ElegantPieChart: React.FC<ElegantPieChartProps> = ({ data, total }) => {
-    if (!data || data.length === 0) {
+    if (!data || data.length === 0 || total === 0) {
         return (
             <div className="flex h-40 w-40 items-center justify-center rounded-full bg-gray-100 text-center text-xs text-gray-400">
                 Belum ada data dari Excel
@@ -72,72 +70,70 @@ const ElegantPieChart: React.FC<ElegantPieChartProps> = ({ data, total }) => {
         );
     }
 
-    return (
-        <div className="flex items-center gap-4">
-            <div className="h-40 w-40">
-                <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                        <Pie
-                            data={data}
-                            dataKey="value"
-                            nameKey="label"
-                            innerRadius={55}
-                            outerRadius={75}
-                            paddingAngle={2}
-                            stroke="#ffffff"
-                            strokeWidth={2}
-                        >
-                            {data.map((entry, index) => (
-                                <Cell
-                                    key={`slice-${index}`}
-                                    fill={PIE_COLORS[index % PIE_COLORS.length]}
-                                />
-                            ))}
-                        </Pie>
-                        <Tooltip
-                            contentStyle={{
-                                borderRadius: 8,
-                                borderColor: '#E5E7EB',
-                                boxShadow:
-                                    '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)',
-                                fontSize: '0.75rem',
-                            }}
-                            formatter={(value: any) => [`${value} peserta`, 'Jumlah']}
-                            labelFormatter={(label) => `File: ${label}`}
-                        />
-                    </PieChart>
-                </ResponsiveContainer>
+    // hitung segmen 0–100% untuk conic-gradient
+    let current = 0;
+    const segments = data.map((item, idx) => {
+        const pct = (item.value / total) * 100;
+        const start = current;
+        const end = current + pct;
+        current = end;
+        return {
+            ...item,
+            start,
+            end,
+            color: PIE_COLORS[idx % PIE_COLORS.length],
+        };
+    });
 
-                <div className="pointer-events-none absolute flex h-40 w-40 flex-col items-center justify-center text-center">
+    const background = `conic-gradient(${segments
+        .map((seg) => `${seg.color} ${seg.start}% ${seg.end}%`)
+        .join(', ')})`;
+
+    return (
+        <div className="flex items-center gap-6">
+            {/* Donut ala admin */}
+            <div className="relative h-40 w-40">
+                <div
+                    className="h-40 w-40 rounded-full shadow-inner"
+                    style={{ background }}
+                />
+                <div className="pointer-events-none absolute inset-0 m-auto flex h-24 w-24 flex-col items-center justify-center rounded-full bg-white shadow-sm">
                     <div className="text-xs text-gray-400">Total peserta</div>
-                    <div className="text-2xl font-bold text-gray-900">
-                        {total}
-                    </div>
+                    <div className="text-2xl font-bold text-gray-900">{total}</div>
                 </div>
             </div>
 
-            {/* Legend */}
-            <div className="hidden flex-col space-y-1 text-xs text-gray-600 md:flex">
-                {data.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                        <span
-                            className="inline-block h-3 w-3 rounded-full"
-                            style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}
-                        />
-                        <span className="truncate max-w-[140px]" title={item.label}>
-                            {item.label}
-                        </span>
-                        <span className="ml-auto font-semibold text-gray-800">
-                            {item.value}
-                        </span>
-                    </div>
-                ))}
+            {/* Legend ala admin */}
+            <div className="hidden flex-1 flex-col space-y-2 text-xs text-gray-600 md:flex">
+                {segments.map((item, idx) => {
+                    const percent = ((item.value / total) * 100).toFixed(1);
+                    return (
+                        <div key={idx} className="flex items-center gap-3">
+                            <span
+                                className="inline-block h-3 w-3 rounded-full"
+                                style={{ backgroundColor: item.color }}
+                            />
+                            <div className="flex-1 truncate">
+                                <span
+                                    className="truncate font-semibold text-gray-800"
+                                    title={item.label}
+                                >
+                                    {item.label}
+                                </span>
+                            </div>
+                            <span className="text-gray-500">{item.value} org</span>
+                            <span className="w-12 text-right font-semibold text-gray-800">
+                                {percent}%
+                            </span>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
 };
 
-/* ========= ORGANISASI BAR CHART ========= */
+/* ========= ORGANISASI BAR CHART (lebih keren) ========= */
 
 type OrgChartProps = {
     data: OrgBar[];
@@ -152,10 +148,23 @@ const OrgBarChart: React.FC<OrgChartProps> = ({ data }) => {
         );
     }
 
+    const maxValue = data.reduce((max, item) => Math.max(max, item.value), 0) || 1;
+
     return (
-        <div className="h-48">
+        <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                <BarChart
+                    data={data}
+                    margin={{ top: 10, right: 16, left: 0, bottom: 30 }}
+                >
+                    <defs>
+                        <linearGradient id="orgBarGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#FACC15" />
+                            <stop offset="50%" stopColor="#FB923C" />
+                            <stop offset="100%" stopColor="#2563EB" />
+                        </linearGradient>
+                    </defs>
+
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis
                         dataKey="label"
@@ -163,9 +172,13 @@ const OrgBarChart: React.FC<OrgChartProps> = ({ data }) => {
                         interval={0}
                         angle={-25}
                         textAnchor="end"
-                        height={50}
+                        height={48}
                     />
-                    <YAxis tick={{ fontSize: 11 }} />
+                    <YAxis
+                        tick={{ fontSize: 11 }}
+                        domain={[0, maxValue]}
+                        allowDecimals={false}
+                    />
                     <Tooltip
                         contentStyle={{
                             borderRadius: 8,
@@ -176,7 +189,19 @@ const OrgBarChart: React.FC<OrgChartProps> = ({ data }) => {
                         }}
                         formatter={(value: any) => [`${value} peserta`, 'Jumlah']}
                     />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]} fill={BAR_COLOR} />
+                    <Bar
+                        dataKey="value"
+                        radius={[8, 8, 0, 0]}
+                        fill="url(#orgBarGradient)"
+                        maxBarSize={40}
+                    >
+                        <LabelList
+                            dataKey="value"
+                            position="top"
+                            formatter={(val: any) => `${val}`}
+                            style={{ fontSize: '0.7rem', fill: '#374151' }}
+                        />
+                    </Bar>
                 </BarChart>
             </ResponsiveContainer>
         </div>
@@ -191,6 +216,8 @@ export default function Dashboard() {
         hasilTes = [],
         pieData = [],
         orgData = [],
+        instansi_name,
+        instansi_tagline,
     } = usePage<PageProps>().props;
 
     const safeSummary: Summary = summary ?? {
@@ -198,9 +225,12 @@ export default function Dashboard() {
         latest_reports: 0,
     };
 
+    const bannerTitle =
+        instansi_tagline ??
+        `${instansi_name ?? 'Instansi Anda'}, Mari Bertumbuh Lebih Cepat.`;
+
     // handler download form tes
     const handleDownloadFormTes = () => {
-        // route name: instansi.tes.downloadForm
         window.location.href = '/instansi/download-form-tes';
     };
 
@@ -225,7 +255,7 @@ export default function Dashboard() {
 
                         <div className="relative mt-6 md:mt-0">
                             <ElegantPieChart
-                                data={pieData}
+                                data={pieData as PieSlice[]}
                                 total={safeSummary.total_participants}
                             />
                         </div>
@@ -245,15 +275,6 @@ export default function Dashboard() {
                                     </span>
                                 </p>
                             </div>
-
-                            <button
-                                type="button"
-                                onClick={handleDownloadFormTes}
-                                className="flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-sm font-bold text-white hover:bg-green-600"
-                            >
-                                <HiOutlineArrowDown className="h-5 w-5" />
-                                Unduh Form Tes
-                            </button>
                         </div>
 
                         <div className="overflow-x-auto">
@@ -265,11 +286,10 @@ export default function Dashboard() {
                                         <th className="px-3 py-2">Devisi</th>
                                         <th className="px-3 py-2">Tanggal</th>
                                         <th className="px-3 py-2">Email</th>
-                                        <th className="px-3 py-2">Unduh</th>
                                     </tr>
                                 </thead>
                                 <tbody className="font-medium text-gray-800">
-                                    {hasilTes.map((tes) => (
+                                    {hasilTes.map((tes: HasilTesRow) => (
                                         <tr
                                             key={tes.no}
                                             className="border-b border-gray-100"
@@ -281,23 +301,16 @@ export default function Dashboard() {
                                             </td>
                                             <td className="px-3 py-3">{tes.tgl}</td>
                                             <td className="px-3 py-3">{tes.email}</td>
-                                            <td className="px-3 py-3">
-                                                <button
-                                                    type="button"
-                                                    className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-white hover:bg-green-600"
-                                                >
-                                                    <FaDownload className="h-4 w-4" />
-                                                </button>
-                                            </td>
                                         </tr>
                                     ))}
                                     {hasilTes.length === 0 && (
                                         <tr>
                                             <td
-                                                colSpan={6}
+                                                colSpan={5}
                                                 className="px-3 py-4 text-center text-sm text-gray-400"
                                             >
-                                                Belum ada peserta tes (belum ada data di Excel).
+                                                Belum ada peserta tes (belum ada data di
+                                                Excel).
                                             </td>
                                         </tr>
                                     )}
@@ -310,17 +323,17 @@ export default function Dashboard() {
                     <div className="relative h-48 overflow-hidden rounded-xl shadow-sm">
                         <img
                             src="https://via.placeholder.com/800x200.png?text=Placeholder+Image"
-                            alt="Banner PT Maju Jaya"
+                            alt={bannerTitle}
                             className="h-full w-full object-cover"
                         />
                         <div className="bg-opacity-40 absolute inset-0 bg-black" />
                         <h3 className="absolute bottom-6 left-6 max-w-sm text-2xl font-bold text-white">
-                            PT. Maju Jaya Bersama, Mari Bertumbuh Lebih Cepat.
+                            {bannerTitle}
                         </h3>
                     </div>
                 </div>
 
-                {/* === KOLOM KANAN (hanya 2 kartu: Laporan & Organisasi) === */}
+                {/* === KOLOM KANAN === */}
                 <div className="space-y-6 lg:col-span-1">
                     {/* Laporan Terbaru */}
                     <div className="rounded-xl bg-white p-6 text-center shadow-sm">
@@ -333,9 +346,9 @@ export default function Dashboard() {
                     {/* Organisasi - bar chart */}
                     <div className="rounded-xl bg-white p-6 shadow-sm">
                         <h3 className="mb-4 text-lg font-bold text-gray-800">
-                            Organisasi
+                            Golongan/Batch
                         </h3>
-                        <OrgBarChart data={orgData} />
+                        <OrgBarChart data={orgData as OrgBar[]} />
                     </div>
                 </div>
             </div>

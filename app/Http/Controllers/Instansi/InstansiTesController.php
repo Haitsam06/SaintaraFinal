@@ -5,35 +5,55 @@ namespace App\Http\Controllers\Instansi;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+
 use App\Models\Paket;
+use App\Models\Token;
+
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use Illuminate\Support\Facades\Storage;
 
 class InstansiTesController extends Controller
 {
     /**
      * 1. Halaman daftar paket TES INSTANSI
+     *    /instansi/tesInstansi
      */
     public function index()
     {
+        // Ambil semua paket instansi yang boleh ditampilkan
+        // (di db kamu id_paket: DSR, PRM, STD)
         $pakets = Paket::select('id_paket', 'nama_paket', 'harga', 'deskripsi', 'jumlah_karakter')
-            ->whereIn('id_paket', [
-                'INST_ADMIN_REPEAT',
-                'INST_ADMIN_ONETIME',
-                'INST_QUOTA_25',
-            ])
+            ->whereIn('id_paket', ['DSR', 'PRM', 'STD'])
             ->get();
 
-        $daftarPaket = $pakets->map(function ($p) {
+        // Instansi login
+        $instansi = Auth::guard('instansi')->user();
+
+        // Hitung saldo token per paket untuk instansi ini
+        $tokenPerPaket = [];
+        if ($instansi) {
+            $tokenPerPaket = Token::where('instansi_id', $instansi->id_instansi)
+                ->where('status', 'belum digunakan')
+                ->select('paket_id', DB::raw('COUNT(*) as total'))
+                ->groupBy('paket_id')
+                ->pluck('total', 'paket_id')
+                ->toArray();
+        }
+
+        $daftarPaket = $pakets->map(function ($p) use ($tokenPerPaket) {
+            $tokenPaket = $tokenPerPaket[$p->id_paket] ?? 0;
+
             return [
                 'id_paket'        => $p->id_paket,
                 'nama_paket'      => $p->nama_paket,
                 'harga'           => (int) $p->harga,
                 'deskripsi'       => $p->deskripsi,
                 'jumlah_karakter' => $p->jumlah_karakter,
-                'has_token'       => true,
+                'has_token'       => $tokenPaket > 0, // tombol "Mulai Tes" kalau > 0
             ];
         });
 
@@ -44,7 +64,7 @@ class InstansiTesController extends Controller
 
     /**
      * 2. Form upload Excel + input manual peserta.
-     *    /instansi/formTesInstansi?paket_id=INST_QUOTA_25
+     *    /instansi/formTesInstansi?paket_id=PRM
      */
     public function form(Request $request)
     {
@@ -62,13 +82,33 @@ class InstansiTesController extends Controller
             'token_cost'  => (int) $paket->harga,
         ];
 
+        $instansi = Auth::guard('instansi')->user();
+
+        // saldo token hanya untuk paket ini (PRM / DSR / STD)
+        $saldoTokenPaket = 0;
+        if ($instansi) {
+            $saldoTokenPaket = Token::where('instansi_id', $instansi->id_instansi)
+                ->where('paket_id', $paket->id_paket)
+                ->where('status', 'belum digunakan')
+                ->count();
+        }
+
         return Inertia::render('Instansi/form-tes-instansi', [
             'test_package' => $testPackage,
+            'saldo_token'  => $saldoTokenPaket,        // ditampilkan di form
             'wa_url'       => session('wa_url'),
             'success'      => session('success'),
+            'errors'       => session('errors') ? session('errors')->toArray() : [],
         ]);
     }
 
+    /**
+     * 3. Submit form:
+     *    - gabung peserta Excel + manual ke 1 file
+     *    - cek token paket
+     *    - jika cukup: kurangi token (status = 'digunakan')
+     *    - kirim link file ke WA (via session)
+     */
     public function uploadExcel(Request $request)
     {
         $validated = $request->validate([
@@ -113,14 +153,14 @@ class InstansiTesController extends Controller
             'Tanggal Lahir',
         ];
 
-        // 1A. Dari Excel
+        // 1A. Peserta dari Excel
         if ($hasFile) {
             try {
                 $sheet     = IOFactory::load($request->file('file')->getRealPath())->getActiveSheet();
                 $excelRows = $sheet->toArray(null, true, true, true);
 
                 foreach ($excelRows as $i => $row) {
-                    if ($i === 1) continue;                      // header
+                    if ($i === 1) continue;                          // header
                     if (empty($row['A']) && empty($row['C'])) continue; // minimal nama/email
 
                     $rows[] = [
@@ -142,7 +182,7 @@ class InstansiTesController extends Controller
             }
         }
 
-        // 1B. Dari input manual
+        // 1B. Peserta dari input manual
         foreach ($manualPeserta as $p) {
             if (empty($p['full_name']) && empty($p['email'])) {
                 continue;
@@ -167,50 +207,110 @@ class InstansiTesController extends Controller
             ])->withInput();
         }
 
-        $spreadsheet = new Spreadsheet();
-        $sheet       = $spreadsheet->getActiveSheet();
+        // ========== CEK & POTONG TOKEN DALAM TRANSAKSI ==========
+        $instansi = Auth::guard('instansi')->user();
 
-        $sheet->fromArray($header, null, 'A1');
-
-        foreach ($rows as $i => $r) {
-            $sheet->fromArray($r, null, 'A' . (2 + $i));
+        if (!$instansi) {
+            return redirect()->route('login');
         }
 
-        $folder   = 'instansi_peserta';
-        $fileName = 'peserta_' . $paket->id_paket . '_' . now()->format('Ymd_His') . '.xlsx';
+        $totalPeserta    = count($rows);
+        $tokenDibutuhkan = $totalPeserta; // 1 token / peserta
 
-        Storage::disk('public')->makeDirectory($folder);
+        try {
+            DB::transaction(function () use (
+                $instansi,
+                $paket,
+                $tokenDibutuhkan,
+                $rows,
+                $header,
+                $validated,
+                &$waUrl
+            ) {
+                // 1. Hitung token aktif untuk paket ini
+                $saldoTokenPaket = Token::where('instansi_id', $instansi->id_instansi)
+                    ->where('paket_id', $paket->id_paket)
+                    ->where('status', 'belum digunakan')
+                    ->lockForUpdate()
+                    ->count();
 
-        $path = $folder . '/' . $fileName;
-        (new Xlsx($spreadsheet))->save(Storage::disk('public')->path($path));
+                // aturan user: token_dibutuhkan >= token_tersedia => tidak mencukupi
+                if ($tokenDibutuhkan >= $saldoTokenPaket) {
+                    throw new \RuntimeException(
+                        "Token anda tidak mencukupi untuk paket {$paket->nama_paket}. " .
+                        "Token tersedia: {$saldoTokenPaket}, peserta: {$tokenDibutuhkan}."
+                    );
+                }
 
-        // pakai route download, BUKAN asset('storage/...')
-        $fileUrl = route('instansi.downloadPeserta', ['filename' => $fileName]);
+                // 2. Ambil token yang akan dipakai & update status
+                $tokens = Token::where('instansi_id', $instansi->id_instansi)
+                    ->where('paket_id', $paket->id_paket)
+                    ->where('status', 'belum digunakan')
+                    ->orderBy('created_at')
+                    ->lockForUpdate()
+                    ->limit($tokenDibutuhkan)
+                    ->get();
 
-        $nomorAdmin = '6282169799967';
+                foreach ($tokens as $t) {
+                    $t->status       = 'digunakan';   // SESUAI ENUM
+                    $t->tglPemakaian = now();
+                    $t->save();
+                }
 
-        $pesan = "
+                // 3. Generate file Excel gabungan
+                $spreadsheet = new Spreadsheet();
+                $sheet       = $spreadsheet->getActiveSheet();
+
+                $sheet->fromArray($header, null, 'A1');
+                foreach ($rows as $i => $r) {
+                    $sheet->fromArray($r, null, 'A' . (2 + $i));
+                }
+
+                $folder   = 'instansi_peserta';
+                $fileName = 'peserta_' . $paket->id_paket . '_' . now()->format('Ymd_His') . '.xlsx';
+
+                Storage::disk('public')->makeDirectory($folder);
+                $path = $folder . '/' . $fileName;
+
+                (new Xlsx($spreadsheet))->save(Storage::disk('public')->path($path));
+
+                // 4. Link download untuk WhatsApp
+                $fileUrl    = route('instansi.downloadPeserta', ['filename' => $fileName]);
+                $nomorAdmin = '6282169799967';
+
+                $pesan = "
 *DATA PESERTA TES SAINTARA (INSTANSI)*
 
 Paket : *{$paket->nama_paket}*
 Golongan : *{$validated['nama_golongan']}*
 
+Total Peserta : *{$tokenDibutuhkan}*
+Token Dibutuhkan : *{$tokenDibutuhkan}*
+
 File Excel peserta:
 {$fileUrl}
 
 Terima kasih.
-        ";
+                ";
 
-        $waUrl = 'https://wa.me/' . $nomorAdmin . '?text=' . urlencode(trim($pesan));
+                $waUrl = 'https://wa.me/' . $nomorAdmin . '?text=' . urlencode(trim($pesan));
+            });
+        } catch (\RuntimeException $e) {
+            // error karena token tidak cukup
+            return back()->withErrors([
+                'participants' => $e->getMessage(),
+            ])->withInput();
+        }
 
+        // kalau sampai sini berarti sukses & $waUrl terisi
         return redirect()
             ->to('/instansi/formTesInstansi?paket_id=' . $validated['test_package_id'])
             ->with('wa_url', $waUrl)
-            ->with('success', 'Data peserta berhasil diproses.');
+            ->with('success', 'Data peserta berhasil diproses dan token telah dipotong.');
     }
 
     /**
-     * 4. Route download: dipanggil dari link yang dikirim ke WhatsApp.
+     * 4. Download file peserta (dipakai dari link WA).
      */
     public function downloadPeserta(string $filename)
     {
@@ -224,20 +324,17 @@ Terima kasih.
     }
 
     /**
-     * 5. Download template form peserta untuk tombol "Unduh Form Tes" di dashboard.
+     * 5. Download template form peserta.
+     *    File disimpan di: public/templates/peserta_instansi.xlsx
      */
     public function downloadFormTemplate()
     {
-        // Simpan template di: storage/app/public/instansi_peserta/form_peserta_instansi.xlsx
-        $path = 'instansi_peserta/form_peserta_instansi.xlsx';
+        $fullPath = public_path('templates/peserta_instansi.xlsx');
 
-        if (!Storage::disk('public')->exists($path)) {
+        if (!file_exists($fullPath)) {
             abort(404, 'Template form peserta tidak ditemukan.');
         }
 
-        return Storage::disk('public')->download(
-            $path,
-            'Form_Peserta_Instansi.xlsx'
-        );
+        return response()->download($fullPath, 'Template_Peserta_Instansi.xlsx');
     }
 }
