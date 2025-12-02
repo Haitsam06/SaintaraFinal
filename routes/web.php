@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Http\Request; // >>> DITAMBAHKAN
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -54,6 +55,29 @@ Route::get('/', function () {
 Route::get('/test-web', function () {
     return 'Web Loaded';
 });
+
+// >>> DITAMBAHKAN: ROUTE GLOBAL "dashboard"
+// Route ini yang akan dipakai oleh Wayfinder untuk membuat fungsi dashboard()
+Route::get('/dashboard', function (Request $request) {
+    // Jika admin login
+    if ($request->user('admin')) {
+        return redirect()->route('admin.dashboard');
+    }
+
+    // Jika instansi login
+    if ($request->user('instansi')) {
+        return redirect()->route('instansi.dashboard');
+    }
+
+    // Jika customer (personal) login
+    if ($request->user('customer')) {
+        return redirect()->route('personal.dashboard');
+    }
+
+    // Jika belum login, arahkan ke login
+    return redirect()->route('login');
+})->name('dashboard');
+// <<< END DITAMBAHKAN
 
 // --- WEBHOOK MIDTRANS (UNIVERSAL) ---
 Route::post('/payment/notification', [PaymentCallbackController::class, 'handle'])
