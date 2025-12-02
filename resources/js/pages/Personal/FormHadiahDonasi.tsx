@@ -1,55 +1,86 @@
 import React from "react";
 import { useForm, Head } from "@inertiajs/react";
 
+// --- PERBAIKAN 1: Buat Interface (Definisi Tipe Data) ---
+interface DonationData {
+    email_penerima: string;
+    nama_penerima: string;
+    paket_id: string;
+    // Baris di bawah ini ("Index Signature") membolehkan field tambahan seperti 'message'
+    [key: string]: any; 
+}
+
 export default function DonationForm() {
-    // 1. Setup State Form
-    const { data, setData, post, processing, errors, reset } = useForm({
+    // --- PERBAIKAN 2: Pasang <DonationData> di useForm ---
+    // Dengan cara ini, TypeScript paham bahwa 'errors' bisa punya key 'message'
+    const { data, setData, post, processing, errors, reset } = useForm<DonationData>({
         email_penerima: '',
         nama_penerima: '',
+        paket_id: '', 
     });
 
-    // Validasi sederhana di frontend
-    const isFormValid = data.email_penerima && data.nama_penerima;
+    // Validasi frontend: Paket harus dipilih juga
+    const isFormValid = data.email_penerima && data.nama_penerima && data.paket_id;
 
-    // 2. Handle Submit
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // PENTING: URL harus sesuai dengan route di web.php
-        // Karena ada di group prefix 'personal', maka URL-nya: /personal/donation/send
         post('/personal/donation/send', {
             preserveScroll: true,
             onSuccess: () => {
                 alert("Berhasil! Token telah didonasikan.");
-                reset(); // Bersihkan form setelah sukses
+                reset();
             },
             onError: () => {
-                // Error akan otomatis muncul di text merah di bawah input
-                console.error("Gagal mengirim donasi.");
+                // Error handle otomatis
             }
         });
     };
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#FFFBE6] px-4">
-            {/* Ubah Title Tab Browser */}
             <Head title="Donasi Token" />
 
             <div className="w-full max-w-lg">
                 
-                {/* Header Section */}
+                {/* Header */}
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-[#B8860B] mb-2">Saintara</h1>
                     <h2 className="text-2xl font-bold text-black">Formulir Donasi Token</h2>
                     <p className="text-gray-600 text-sm mt-1">
-                        Berikan token Anda kepada teman atau kerabat
+                        Pilih paket token yang ingin Anda berikan
                     </p>
                 </div>
 
-                {/* Card Form */}
+                {/* Card */}
                 <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
                     
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+
+                        {/* Pilihan Paket (Dropdown) */}
+                        <div>
+                            <label htmlFor="paket_id" className="block text-sm font-bold text-black mb-2">
+                                Pilih Jenis Paket
+                            </label>
+                            <select
+                                id="paket_id"
+                                className={`w-full rounded-lg border bg-white p-3 text-sm text-black focus:outline-none focus:ring-1 transition-all cursor-pointer ${
+                                    errors.paket_id 
+                                    ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
+                                    : "border-gray-400 focus:border-yellow-500 focus:ring-yellow-500"
+                                }`}
+                                value={data.paket_id}
+                                onChange={(e) => setData('paket_id', e.target.value)}
+                            >
+                                <option value="" disabled>-- Pilih Paket Token --</option>
+                                <option value="DSR">Paket Dasar (DSR)</option>
+                                <option value="STD">Paket Standar (STD)</option>
+                                <option value="PRM">Paket Premium (PRM)</option>
+                            </select>
+                            {errors.paket_id && (
+                                <p className="mt-1 text-xs text-red-500 font-medium">{errors.paket_id}</p>
+                            )}
+                        </div>
 
                         {/* Input Email Penerima */}
                         <div>
@@ -95,8 +126,15 @@ export default function DonationForm() {
                             )}
                         </div>
 
+                        {/* Pesan Error Global (Sekarang Error ini sudah valid) */}
+                        {errors.message && (
+                            <div className="bg-red-50 border border-red-200 text-red-600 text-sm p-3 rounded-lg text-center">
+                                {errors.message}
+                            </div>
+                        )}
+
                         {/* Tombol Kirim */}
-                        <div className="mt-4">
+                        <div className="mt-2">
                             <button
                                 type="submit"
                                 disabled={processing || !isFormValid}
@@ -115,12 +153,6 @@ export default function DonationForm() {
                                 )}
                             </button>
                         </div>
-
-                        {/* Info Tambahan */}
-                        <div className="text-center text-xs text-gray-500">
-                            Pastikan email penerima sudah terdaftar di Saintara.
-                        </div>
-
                     </form>
                 </div>
             </div>

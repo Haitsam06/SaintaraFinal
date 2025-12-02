@@ -24,6 +24,7 @@ class Token extends Model
         'id_token',
         'pembayaran_id',
         'customer_id',
+        'instansi_id',
         'paket_id',
         'status',       // 'digunakan', 'belum digunakan', 'kadaluarsa'
         'tglPemakaian',
@@ -47,7 +48,12 @@ class Token extends Model
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'id_customer');
     }
-
+    
+    public function instansi()
+    {
+        return $this->belongsTo(Instansi::class, 'instansi_id', 'id_instansi');
+    }
+    
     public function pembayaran()
     {
         return $this->belongsTo(Pembayaran::class, 'pembayaran_id', 'id_transaksi');

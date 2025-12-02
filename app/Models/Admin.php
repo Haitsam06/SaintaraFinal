@@ -34,6 +34,8 @@ class Admin extends Authenticatable
         'status_akun',
         'foto',
         'tanggal_dibuat',
+        'created_at',
+        'updated_at',
     ];
 
     protected $hidden = [

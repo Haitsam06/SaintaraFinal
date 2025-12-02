@@ -28,27 +28,6 @@ export default function Settings() {
             href: '#',
         },
         {
-            title: 'Bonus & Promo',
-            desc: 'Buat dan kelola kode promo, diskon, dan penetapan bonus untuk agen.',
-            icon: HiTicket,
-            color: 'red', // Merah
-            href: '#',
-        },
-        {
-            title: 'Keamanan & Hak Akses',
-            desc: 'Atur kebijakan kata sandi dan hak akses khusus. Akses level Owner diperlukan.',
-            icon: HiShieldCheck,
-            color: 'orange', // Kuning/Oranye
-            href: '#',
-        },
-        {
-            title: 'Notifikasi',
-            desc: 'Kelola template dan trigger notifikasi email untuk pengguna dan admin.',
-            icon: HiBell,
-            color: 'purple', // Ungu
-            href: '#',
-        },
-        {
             title: 'Jenis Tes & Paket',
             desc: 'Edit, tambah, atau hapus jenis tes dan paket yang ditawarkan kepada pengguna.',
             icon: HiViewList,

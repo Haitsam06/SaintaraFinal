@@ -116,17 +116,14 @@ Mohon arahannya untuk langkah selanjutnya. Terima kasih!
             <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-8 border text-black">
 
                 {/* Header */}
-                <div className="text-center mb-6">
+                <div className="mb-6 text-center">
                     <h1 className="text-2xl font-bold text-yellow-600">Saintara</h1>
-                    <h2 className="text-xl font-semibold mt-2">Formulir Tes Kepribadian</h2>
-                    <p className="text-gray-600 text-sm mt-1">
-                        Silakan isi data diri Anda sebelum memulai tes.
-                    </p>
+                    <h2 className="mt-2 text-xl font-semibold">Formulir Tes Kepribadian</h2>
+                    <p className="mt-1 text-sm text-gray-600">Silakan isi data diri Anda sebelum memulai tes.</p>
                 </div>
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
-
                     {/* Nama Lengkap */}
                     <div>
                         <label htmlFor="nama_lengkap" className="mb-2 block text-sm font-medium text-gray-700">
@@ -194,6 +191,7 @@ Mohon arahannya untuk langkah selanjutnya. Terima kasih!
                             value={data.no_telp}
                             onChange={(e) => setData('no_telp', e.target.value)}
                         />
+                        {errors.tgl_lahir && <p className="mt-1 text-xs text-red-500">{errors.tgl_lahir}</p>}
                     </div>
 
                     {/* Golongan Darah */}
@@ -241,7 +239,7 @@ Mohon arahannya untuk langkah selanjutnya. Terima kasih!
 
                     {/* Jenis Kelamin (Radio Buttons) */}
                     <div className="col-span-2">
-                        <label className="block text-sm font-medium mb-1">Jenis Kelamin</label>
+                        <label className="mb-1 block text-sm font-medium">Jenis Kelamin</label>
                         <div className="flex gap-6">
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input

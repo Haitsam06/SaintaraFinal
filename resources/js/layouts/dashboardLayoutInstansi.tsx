@@ -1,24 +1,24 @@
-import { Link, usePage, router } from '@inertiajs/react'; // Tambah router
+import { Link, usePage, router } from '@inertiajs/react';
 import { ReactNode } from 'react';
 import {
     HiBell,
     HiCog,
     HiCreditCard,
-    HiDocumentReport,
     HiDocumentText,
     HiHome,
     HiLogout,
     HiSupport,
     HiUserCircle,
+    HiMenuAlt2 // Ikon opsi tambahan jika nanti butuh toggle sidebar
 } from 'react-icons/hi';
 
-// --- Interface Data User dari Backend ---
+// --- Interface Data User ---
 interface InstansiUser {
     id_instansi: string;
     nama_instansi: string;
     email: string;
     foto: string | null;
-    name?: string; // Dari Accessor yang kita buat tadi
+    name?: string;
 }
 
 interface PageProps {
@@ -33,95 +33,140 @@ const menuItems = [
     { name: 'Profil Organisasi', href: '/instansi/profilInstansi', icon: HiUserCircle },
     { name: 'Daftar Tes Karakter', href: '/instansi/tesInstansi', icon: HiDocumentText },
     { name: 'Transaksi & Voucher', href: '/instansi/transaksiInstansi', icon: HiCreditCard },
-    { name: 'Hasil Tes', href: '/instansi/hasilInstansi', icon: HiDocumentReport },
     { name: 'Bantuan', href: '/instansi/bantuanInstansi', icon: HiSupport },
-    { name: 'Pengaturan', href: '/instansi/pengaturanInstansi', icon: HiCog },
+    { name: 'Pengaturan', href: '/instansi/settingInstansi', icon: HiCog },
 ];
 
 export default function InstansiLayout({ children }: { children: ReactNode }) {
-    // 1. AMBIL DATA LANGSUNG DARI INERTIA (Live Data)
     const { url, props } = usePage<PageProps>();
-    const user = props.auth.user; 
+    const user = props.auth.user;
 
-    // Logic Nama & Foto (Fallback jika data kosong)
     const displayName = user?.name || user?.nama_instansi || 'Instansi User';
     const displayEmail = user?.email || '';
     
-    // URL Foto: Jika ada path foto, tambahkan /storage/, jika tidak pakai Avatar API
     const displayFoto = user?.foto 
         ? `/storage/${user.foto}` 
-        : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=FACC15&color=000&size=128`;
+        : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=FACC15&color=1e293b&size=128&bold=true`;
 
-    // 2. Fungsi Logout (Menggunakan cara Inertia yang lebih bersih)
     const logout = () => {
-        router.post('/logout'); // Ini otomatis menghapus session & token di backend
+        router.post('/logout');
     };
 
     return (
-        <div className="flex min-h-screen bg-gray-50 font-poppins">
-            {/* === SIDEBAR (Tema Hitam) === */}
-            <aside className="flex w-64 flex-shrink-0 flex-col bg-gray-900 text-white transition-all duration-300">
-                <div className="flex h-20 items-center justify-center border-b border-gray-700">
-                    <Link href="/" className="flex items-center gap-3">
-                        <img src="/assets/logo/4.png" alt="Logo" className="h-8 w-8 rounded-full bg-white object-contain" />
-                        <h1 className="cursor-pointer text-2xl font-bold tracking-wider text-white transition-colors hover:text-yellow-400">SAINTARA</h1>
+        <div className="flex min-h-screen bg-gray-50 font-poppins text-slate-800">
+            {/* === SIDEBAR === */}
+            {/* Menggunakan bg-slate-900 agar lebih 'rich' daripada hitam pekat */}
+            <aside className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-slate-900 text-white shadow-2xl transition-all duration-300 lg:static">
+                
+                {/* Logo Section */}
+                <div className="flex h-24 items-center justify-center border-b border-slate-800">
+                    <Link href="/" className="flex items-center gap-3 transition-transform hover:scale-105">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-lg shadow-yellow-500/20">
+                             <img src="/assets/logo/4.png" alt="Logo" className="h-6 w-6 object-contain brightness-0 invert filter" /> 
+                             {/* Catatan: Jika logo asli berwarna, hapus class brightness/invert */}
+                        </div>
+                        <div className="flex flex-col">
+                            <h1 className="text-xl font-bold tracking-widest text-white">SAINTARA</h1>
+                            <span className="text-[10px] tracking-wide text-slate-400 uppercase">Dashboard Instansi</span>
+                        </div>
                     </Link>
                 </div>
 
-                <nav className="flex-1 space-y-2 px-4 py-6">
+                {/* Navigation */}
+                <nav className="flex-1 space-y-2 overflow-y-auto px-4 py-8 custom-scrollbar">
+                    {/* Label Section (Opsional) */}
+                    <p className="mb-4 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Menu Utama</p>
+
                     {menuItems.map((item) => {
                         const isActive = url.startsWith(item.href);
                         return (
                             <Link
                                 key={item.name}
                                 href={item.href}
-                                className={`group flex items-center rounded-lg px-4 py-2.5 transition-all duration-300 ${
+                                className={`group relative flex items-center overflow-hidden rounded-xl px-4 py-3.5 transition-all duration-300 ${
                                     isActive
-                                        ? 'bg-yellow-400 font-bold text-gray-900 shadow-md'
-                                        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                                        ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-slate-900 shadow-lg shadow-yellow-500/25'
+                                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                                 }`}
                             >
-                                <item.icon className={`mr-3 h-6 w-6 transition-colors ${isActive ? 'text-gray-900' : 'text-gray-400 group-hover:text-yellow-400'}`} />
-                                {item.name}
+                                <item.icon 
+                                    className={`mr-3 h-5 w-5 transition-colors ${
+                                        isActive ? 'text-slate-900' : 'text-slate-500 group-hover:text-yellow-400'
+                                    }`} 
+                                />
+                                <span className={`font-medium ${isActive ? 'font-bold' : ''}`}>{item.name}</span>
+                                
+                                {/* Indikator aktif di kanan (opsional aesthetic) */}
+                                {isActive && (
+                                    <div className="absolute right-3 h-2 w-2 rounded-full bg-slate-900/20" />
+                                )}
                             </Link>
                         );
                     })}
                 </nav>
 
-                <div className="flex-shrink-0 border-t border-gray-700 px-4 py-4">
-                    <button onClick={logout} className="flex w-full items-center rounded-lg px-4 py-2.5 text-gray-300 transition-all duration-300 hover:bg-red-600 hover:text-white">
-                        <HiLogout className="mr-3 h-6 w-6" /> Logout
+                {/* Footer Sidebar (Logout) */}
+                <div className="border-t border-slate-800 px-4 py-6">
+                    <button 
+                        onClick={logout} 
+                        className="group flex w-full items-center justify-center rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-slate-300 transition-all duration-300 hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-500 active:scale-95"
+                    >
+                        <HiLogout className="mr-2 h-5 w-5 transition-transform group-hover:-translate-x-1" /> 
+                        <span className="font-medium">Sign Out</span>
                     </button>
                 </div>
             </aside>
 
             {/* === KONTEN UTAMA === */}
-            <div className="flex flex-1 flex-col overflow-hidden">
-                <header className="flex h-20 items-center justify-between border-b border-gray-100 bg-white px-8 shadow-sm">
-                    {/* Menggunakan displayName yang reaktif */}
-                    <h2 className="text-2xl font-bold text-gray-800">Selamat datang, {displayName}!</h2>
+            <div className="flex flex-1 flex-col overflow-hidden relative">
+                
+                {/* === HEADER (Sticky & Glassmorphism) === */}
+                <header className="sticky top-0 z-40 flex h-20 items-center justify-between border-b border-gray-200/60 bg-white/80 px-8 backdrop-blur-md transition-all">
+                    
+                    {/* Welcome Text */}
+                    <div className="hidden md:block">
+                        <h2 className="text-xl font-bold text-slate-800">
+                            Halo, <span className="text-yellow-600">{displayName.split(' ')[0]}</span> 👋
+                        </h2>
+                        <p className="text-xs text-slate-500">Selamat datang kembali di panel instansi.</p>
+                    </div>
 
-                    <div className="flex items-center space-x-3">
-                        <Link href="/instansi/profilInstansi" className="flex cursor-pointer items-center rounded-full bg-yellow-400 px-4 py-2 shadow-md transition-all duration-200 hover:shadow-lg">
-                            <div className="mr-2 h-9 w-9 overflow-hidden rounded-full bg-gray-200">
-                                {/* Menggunakan displayFoto yang reaktif */}
+                    {/* Mobile Menu Trigger (Visible only on small screens) */}
+                    <button className="mr-4 text-slate-500 lg:hidden">
+                         <HiMenuAlt2 className="h-6 w-6"/>
+                    </button>
+
+                    {/* Right Side Actions */}
+                    <div className="flex items-center gap-6">
+                        
+                        {/* Notification Bell (Lebih subtle) */}
+                        <button type="button" className="relative rounded-full p-2 text-slate-400 transition-colors hover:bg-gray-100 hover:text-yellow-600">
+                            <HiBell className="h-6 w-6" />
+                            <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-white bg-red-500 shadow-sm"></span>
+                        </button>
+
+                        {/* Divider */}
+                        <div className="h-8 w-px bg-gray-200"></div>
+
+                        {/* Profile Dropdown Area */}
+                        <Link href="/instansi/profilInstansi" className="group flex items-center gap-3 rounded-full pl-2 pr-4 transition-all hover:bg-gray-50">
+                            <div className="h-10 w-10 overflow-hidden rounded-full border-2 border-white shadow-md ring-2 ring-transparent transition-all group-hover:ring-yellow-400">
                                 <img src={displayFoto} alt="Avatar" className="h-full w-full object-cover" />
                             </div>
-
-                            <div className="text-sm">
-                                <p className="leading-none font-bold text-gray-900">{displayName}</p>
-                                <p className="text-xs leading-none text-gray-700">{displayEmail}</p>
+                            <div className="hidden text-right sm:block">
+                                <p className="text-sm font-bold text-slate-700 transition-colors group-hover:text-yellow-600">{displayName}</p>
+                                <p className="text-[10px] text-slate-400">{displayEmail}</p>
                             </div>
                         </Link>
-
-                        <button type="button" className="relative flex h-11 w-11 items-center justify-center rounded-full bg-yellow-400 text-gray-900 shadow-md transition-colors hover:bg-yellow-500">
-                            <HiBell className="h-6 w-6" />
-                            <span className="absolute top-1 right-1 h-3 w-3 rounded-full border-2 border-white bg-red-600"></span>
-                        </button>
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-8">{children}</main>
+                {/* === MAIN CONTENT === */}
+                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-6 lg:p-10">
+                    <div className="mx-auto max-w-7xl animate-fade-in-up">
+                         {children}
+                    </div>
+                </main>
             </div>
         </div>
     );

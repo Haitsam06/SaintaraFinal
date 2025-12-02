@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import DashboardLayout from '@/layouts/dashboard-layout-personal';
 import { Head, router } from '@inertiajs/react';
+import axios from 'axios'; // <--- KITA GUNAKAN AXIOS AGAR LEBIH STABIL
+
+// --- DEKLARASI GLOBAL MIDTRANS ---
+declare global {
+    interface Window {
+        snap: any;
+    }
+}
 
 // === 1. DEFINISI TIPE DATA ===
-
 interface Paket {
     id_paket: string;
     nama_paket: string;
@@ -48,7 +56,7 @@ export default function TransaksiDanToken({
     // === STATE MANAGEMENT ===
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [selectedPaket, setSelectedPaket] = useState<Paket | null>(null);
-    const [quantity, setQuantity] = useState<number>(0);
+    const [quantity, setQuantity] = useState<number>(1); // Default quantity 1
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     // === HELPER FUNCTIONS ===
@@ -60,17 +68,18 @@ export default function TransaksiDanToken({
         }).format(value);
     };
 
-    const getPaketColor = (nama: string) => {
-        const n = nama.toLowerCase();
-        if (n.includes('dasar')) return 'bg-gray-100 text-gray-700 border-gray-200';
-        if (n.includes('standar')) return 'bg-blue-50 text-blue-700 border-blue-200';
-        if (n.includes('premium')) return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-        return 'bg-gray-50 text-gray-600 border-gray-200';
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case 'berhasil': return 'bg-green-100 text-green-700 border-green-200';
+            case 'menunggu': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+            case 'gagal': return 'bg-red-100 text-red-700 border-red-200';
+            default: return 'bg-gray-100 text-gray-600 border-gray-200';
+        }
     };
 
     // Logic Quantity
     const handleIncrement = () => setQuantity((prev) => prev + 1);
-    const handleDecrement = () => setQuantity((prev) => (prev > 0 ? prev - 1 : 0));
+    const handleDecrement = () => setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
 
     // Logic Pilih Paket
     const handleSelectPaket = (paket: Paket) => {
@@ -78,284 +87,341 @@ export default function TransaksiDanToken({
         setQuantity(1);
     };
 
-    // Logic Checkout
-    const handleCheckout = () => {
+    // === LOGIC CHECKOUT (MENGGUNAKAN AXIOS) ===
+    const handleCheckout = async () => {
+        // 1. Validasi Awal
         if (!selectedPaket) return alert("Silakan pilih paket terlebih dahulu!");
         if (quantity <= 0) return alert("Jumlah token minimal 1");
 
         setIsLoading(true);
 
-        router.post('/personal/transaksi/checkout', {
-            paket_id: selectedPaket.id_paket,
-            quantity: quantity,
-            total_harga: selectedPaket.harga * quantity
-        }, {
-            onSuccess: () => {
-                setIsLoading(false);
-                setIsModalOpen(false);
-                setQuantity(0);
-                setSelectedPaket(null);
-            },
-            onError: () => {
-                setIsLoading(false);
-                alert("Terjadi kesalahan saat memproses transaksi.");
+        try {
+            // 2. Request Snap Token ke Backend menggunakan AXIOS
+            // Axios otomatis menghandle CSRF Token Laravel (XSRF-TOKEN cookie)
+            const response = await axios.post('/personal/transaksi/checkout', {
+                paket_id: selectedPaket.id_paket,
+                quantity: quantity
+            });
+
+            const result = response.data; // Ambil data dari response axios
+
+            // 3. Jika Sukses dapat Token, Buka Popup Midtrans
+            if (result.snap_token) {
+                setIsModalOpen(false); // Tutup modal internal kita
+                
+                // Panggil fungsi global Snap Midtrans
+                window.snap.pay(result.snap_token, {
+                    onSuccess: function(result: any) {
+                        alert("Pembayaran Berhasil! Saldo Token akan segera bertambah.");
+                        window.location.reload(); // Reload halaman untuk update saldo
+                    },
+                    onPending: function(result: any) {
+                        alert("Menunggu Pembayaran. Silakan selesaikan pembayaran Anda.");
+                        window.location.reload(); 
+                    },
+                    onError: function(result: any) {
+                        alert("Pembayaran Gagal! Silakan coba lagi.");
+                    },
+                    onClose: function() {
+                        alert('Anda menutup popup tanpa menyelesaikan pembayaran');
+                    }
+                });
+            } else {
+                alert("Gagal mendapatkan token pembayaran dari server.");
             }
-        });
+
+        } catch (error: any) {
+            console.error("Checkout Error:", error);
+            // Tangkap pesan error dari backend jika ada
+            const message = error.response?.data?.message || error.response?.data?.error || "Terjadi kesalahan sistem.";
+            alert("Gagal: " + message);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
         <DashboardLayout>
-            <Head title="Transaksi dan Token" />
+            <Head title="Dompet & Transaksi" />
 
-            <div className="p-6 relative min-h-screen bg-gray-50/50">
+            <div className="p-6 min-h-screen bg-[#FAFAFA] font-sans text-[#2A2A2A]">
 
-                {/* NOTIFIKASI SUKSES */}
+                {/* === NOTIFIKASI SUKSES === */}
                 {flash?.success && (
-                    <div className="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative shadow-sm flex justify-between items-center" role="alert">
-                        <div>
-                            <strong className="font-bold">Berhasil! </strong>
-                            <span className="block sm:inline">{flash.success}</span>
+                    <div className="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-r shadow-sm flex justify-between items-center animate-fade-in-down">
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                                <svg className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm font-medium text-green-800">{flash.success}</p>
+                            </div>
                         </div>
-                        <button 
-                            className="text-green-700 font-bold"
-                            onClick={(e) => e.currentTarget.parentElement!.style.display = 'none'}
-                        >
-                            &times;
+                        <button onClick={(e) => e.currentTarget.parentElement!.style.display = 'none'} className="text-green-500 hover:text-green-700">
+                            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                         </button>
                     </div>
                 )}
                 
-                {/* === HEADER === */}
-                <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+                {/* === HEADER SECTION === */}
+                <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-[#2A2A2A]">Transaksi & Token</h1>
+                        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dompet & Transaksi</h1>
+                        <p className="text-gray-500 mt-1">Kelola token dan pantau riwayat pembelian Anda.</p>
                     </div>
                     
                     <button 
                         onClick={() => setIsModalOpen(true)}
-                        className="mt-4 md:mt-0 bg-yellow-500 hover:bg-yellow-600 text-[#2A2A2A] font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-yellow-200 transition-all flex items-center gap-2 hover:translate-y-[-2px]"
+                        className="group relative inline-flex items-center justify-center px-8 py-3 text-base font-semibold text-white transition-all duration-200 bg-black rounded-full hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                        </svg>
-                        Beli Token Baru
+                        <span className="mr-2 text-yellow-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                                <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 9a.75.75 0 00-1.5 0v2.25H9a.75.75 0 000 1.5h2.25V15a.75.75 0 001.5 0v-2.25H15a.75.75 0 000-1.5h-2.25V9z" clipRule="evenodd" />
+                            </svg>
+                        </span>
+                        Top Up Token
                     </button>
                 </div>
 
-                {/* === MAIN GRID LAYOUT === */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     
-                    {/* === [KIRI] KOTAK STATUS TOKEN === */}
-                    <div className="lg:col-span-2 space-y-6">
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                            <h2 className="text-lg font-bold text-[#2A2A2A] mb-6 flex items-center gap-2">
-                                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                                Dompet Token
-                            </h2>
+                    {/* === LEFT COLUMN (TOKEN STATUS) === */}
+                    <div className="lg:col-span-8 space-y-8">
+                        
+                        {/* 1. HERO CARD: Total Saldo */}
+                        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 p-8 text-white shadow-xl">
+                            <div className="absolute top-0 right-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-white opacity-10 blur-3xl"></div>
+                            <div className="absolute bottom-0 left-0 -ml-16 -mb-16 h-64 w-64 rounded-full bg-black opacity-10 blur-3xl"></div>
+
+                            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+                                <div>
+                                    <p className="text-yellow-100 font-medium text-sm uppercase tracking-wider mb-1">Total Saldo Aktif</p>
+                                    <h2 className="text-6xl font-extrabold tracking-tight text-white drop-shadow-sm">
+                                        {saldo_token} <span className="text-2xl font-medium opacity-80">Token</span>
+                                    </h2>
+                                    <p className="mt-2 text-sm text-white opacity-90">Token ini dapat digunakan untuk semua jenis tes.</p>
+                                </div>
+                                <div className="bg-white/20 backdrop-blur-md rounded-2xl p-4 border border-white/30">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 text-white">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 9.563C9 9.252 9.252 9 9.563 9h4.874c.311 0 .563.252.563.563v4.874c0 .311-.252.563-.563.563H9.564A.562.562 0 019 14.437V9.564z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 2. GRID RINCIAN PAKET */}
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <span className="w-1.5 h-6 bg-black rounded-full"></span>
+                                Rincian Paket Anda
+                            </h3>
                             
-                            <div className="flex flex-col md:flex-row gap-6 items-stretch">
-                                {/* 1. Total Besar */}
-                                <div className="w-full md:w-1/3 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-2xl p-6 text-center flex flex-col justify-center items-center shadow-inner min-h-[180px]">
-                                    <p className="text-green-800 text-sm font-semibold uppercase tracking-wide">Total Token</p>
-                                    <p className="text-6xl font-extrabold text-green-600 mt-2 leading-none">
-                                        {saldo_token}
-                                    </p>
-                                    <span className="text-sm text-green-600 font-medium bg-green-100 px-3 py-1 rounded-full mt-3">Aktif</span>
+                            {rincian_token.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                    {rincian_token.map((item, idx) => (
+                                        <div key={idx} className="group bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 hover:border-yellow-300 relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 w-16 h-16 bg-yellow-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                                            
+                                            <div className="relative z-10">
+                                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Paket</p>
+                                                <h4 className="font-bold text-lg text-gray-800 mb-3">{item.nama_paket}</h4>
+                                                
+                                                <div className="flex items-end gap-1">
+                                                    <span className="text-4xl font-bold text-black">{item.total}</span>
+                                                    <span className="text-sm font-medium text-gray-500 mb-1.5">Tiket</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-
-                                {/* 2. Rincian Kartu */}
-                                <div className="flex-1 flex flex-col">
-                                    <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">Rincian Paket</p>
-                                    <div className="flex-1">
-                                        {rincian_token.length > 0 ? (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 h-full content-start">
-                                                {rincian_token.map((item, idx) => (
-                                                    <div key={idx} className={`flex justify-between items-center p-4 rounded-xl border transition-all hover:shadow-sm ${getPaketColor(item.nama_paket)}`}>
-                                                        <div>
-                                                            <p className="text-xs opacity-70 mb-0.5">Paket</p>
-                                                            <p className="font-bold text-base">{item.nama_paket}</p>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <span className="block text-2xl font-bold leading-none">{item.total}</span>
-                                                            <span className="text-[10px] uppercase font-bold opacity-60">Tiket</span>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="h-full min-h-[140px] flex flex-col items-center justify-center text-gray-400 text-sm bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-                                                <svg className="w-8 h-8 mb-2 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
-                                                <p>Belum ada rincian token.</p>
-                                            </div>
-                                        )}
+                            ) : (
+                                <div className="bg-white rounded-2xl p-8 border-2 border-dashed border-gray-200 text-center">
+                                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-50 mb-4">
+                                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
                                     </div>
+                                    <p className="text-gray-500 font-medium">Belum ada paket token yang tersedia.</p>
+                                    <button onClick={() => setIsModalOpen(true)} className="text-yellow-600 font-bold text-sm mt-2 hover:underline">Beli Paket Sekarang</button>
                                 </div>
-                            </div>
-
-                            <div className="mt-6 pt-4 border-t border-gray-100 flex items-start gap-2">
-                                <svg className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                <p className="text-xs text-gray-500 italic">Token akan otomatis berkurang setelah Anda menyelesaikan satu sesi tes kepribadian.</p>
-                            </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* === [KANAN] KOTAK RIWAYAT === */}
-                    <div className="lg:col-span-1">
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-full max-h-[600px] flex flex-col">
-                            <h2 className="text-lg font-bold text-[#2A2A2A] mb-4 flex items-center gap-2 sticky top-0 bg-white z-10">
-                                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                Riwayat Pembelian
-                            </h2>
-                            <div className="overflow-y-auto flex-1 pr-1 space-y-4 custom-scrollbar">
+                    {/* === RIGHT COLUMN (HISTORY) === */}
+                    <div className="lg:col-span-4">
+                        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 flex flex-col h-full max-h-[600px]">
+                            <div className="p-6 border-b border-gray-100 bg-gray-50/50 rounded-t-3xl">
+                                <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    Riwayat Transaksi
+                                </h3>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                                 {riwayat.length === 0 ? (
-                                    <div className="text-center py-12">
-                                        <p className="text-gray-400 text-sm">Belum ada riwayat.</p>
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-400 text-sm py-10">
+                                        <svg className="w-10 h-10 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                        <p>Belum ada riwayat pembelian.</p>
                                     </div>
                                 ) : (
-                                    riwayat.map((trx, index) => (
-                                        <div key={index} className="group relative pl-4 border-l-2 border-gray-200 hover:border-yellow-400 transition-colors pb-4 last:pb-0">
-                                            <div className="absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full bg-white border-2 border-gray-300 group-hover:border-yellow-500"></div>
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="font-semibold text-[#2A2A2A] text-sm line-clamp-1 group-hover:text-yellow-600 transition-colors">{trx.nama_paket}</p>
-                                                    <p className="text-xs text-gray-400 mt-0.5">{trx.tanggal}</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${trx.status === 'berhasil' ? 'bg-green-100 text-green-700' : trx.status === 'menunggu' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
-                                                        {trx.status}
-                                                    </span>
+                                    <div className="space-y-6">
+                                        {riwayat.map((trx, index) => (
+                                            <div key={index} className="relative pl-6 border-l-2 border-gray-100 last:border-0 pb-1">
+                                                {/* Dot Indicator */}
+                                                <div className={`absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-white ${trx.status === 'berhasil' ? 'bg-green-500' : trx.status === 'menunggu' ? 'bg-yellow-400' : 'bg-red-500'}`}></div>
+                                                
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex justify-between items-start">
+                                                        <h5 className="font-bold text-gray-800 text-sm">{trx.nama_paket}</h5>
+                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${getStatusBadge(trx.status)}`}>
+                                                            {trx.status}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-400">{trx.tanggal}</p>
+                                                    <p className="text-sm font-bold text-black mt-1">{formatRupiah(trx.jumlah_bayar)}</p>
                                                 </div>
                                             </div>
-                                            <p className="text-sm font-bold text-gray-700 mt-1">{formatRupiah(trx.jumlah_bayar)}</p>
-                                        </div>
-                                    ))
+                                        ))}
+                                    </div>
                                 )}
+                            </div>
+                            
+                            <div className="p-4 bg-gray-50 rounded-b-3xl text-center">
+                                <p className="text-[10px] text-gray-400">Menampilkan riwayat terbaru Anda</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* === MODAL CHECKOUT (FIXED LAYOUT) === */}
-            {isModalOpen && (
-                <div className="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-                    <div className="fixed inset-0 bg-opacity-60 backdrop-blur-xs transition-opacity" onClick={() => setIsModalOpen(false)}></div>
+            {/* === MODAL CHECKOUT (DENGAN PORTAL & MIDTRANS) === */}
+            {isModalOpen && createPortal(
+                <div className="relative z-[9999]" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                    
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity animate-fade-in z-[9999]" onClick={() => setIsModalOpen(false)}></div>
 
-                    {/* Wrapper Flexbox untuk Centering */}
-                    <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
-                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                    <div className="fixed inset-0 z-[10000] overflow-y-auto">
+                        <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
                             
-                            {/* Panel Modal dengan Flex-Col dan Max-Height */}
-                            <div className="relative flex flex-col w-full max-w-3xl transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all border border-gray-200 max-h-[90vh]">
+                            <div className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-5xl border border-gray-200">
                                 
-                                {/* 1. HEADER (FIXED) - Shrink-0 agar tidak mengecil */}
-                                <div className="flex-shrink-0 bg-white px-6 py-5 border-b border-gray-100 flex justify-between items-center z-10">
+                                <div className="bg-white px-6 py-5 border-b border-gray-100 flex justify-between items-center sticky top-0 z-20">
                                     <div>
                                         <h3 className="text-xl font-bold text-gray-900">Beli Token Baru</h3>
                                         <p className="text-sm text-gray-500">Pilih paket yang sesuai dengan kebutuhan Anda.</p>
                                     </div>
-                                    <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors">
-                                        <span className="text-2xl leading-none">&times;</span>
+                                    <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition-colors">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                     </button>
                                 </div>
 
-                                {/* 2. BODY (SCROLLABLE) - Overflow-y-auto */}
-                                <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50/50">
+                                <div className="flex flex-col lg:flex-row h-full max-h-[80vh] lg:max-h-[70vh]">
                                     
-                                    {/* Grid Pilihan Paket */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                                        {daftar_paket.map((paket) => (
-                                            <div 
-                                                key={paket.id_paket}
-                                                onClick={() => handleSelectPaket(paket)}
-                                                className={`relative cursor-pointer rounded-2xl border-2 p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg flex flex-col justify-between min-h-[180px]
-                                                    ${selectedPaket?.id_paket === paket.id_paket 
-                                                        ? 'border-yellow-500 bg-white ring-2 ring-yellow-200 ring-offset-2' 
-                                                        : 'border-gray-200 bg-white hover:border-yellow-300'}`}
-                                            >
-                                                <div>
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <h4 className="font-bold text-lg text-gray-800">{paket.nama_paket}</h4>
-                                                        {selectedPaket?.id_paket === paket.id_paket && (
-                                                            <span className="bg-yellow-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm animate-pulse">DIPILIH</span>
-                                                        )}
+                                    {/* KOLOM KIRI: Pilihan Paket */}
+                                    <div className="flex-1 overflow-y-auto p-6 bg-white">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {daftar_paket.map((paket) => (
+                                                <div 
+                                                    key={paket.id_paket}
+                                                    onClick={() => handleSelectPaket(paket)}
+                                                    className={`relative cursor-pointer rounded-xl p-5 transition-all duration-200 flex flex-col justify-between min-h-[180px] border-2
+                                                        ${selectedPaket?.id_paket === paket.id_paket 
+                                                            ? 'border-yellow-500 bg-yellow-50/30 shadow-lg ring-1 ring-yellow-500' 
+                                                            : 'border-gray-200 bg-white shadow-sm hover:border-yellow-400 hover:shadow-md'}`}
+                                                >
+                                                    {selectedPaket?.id_paket === paket.id_paket && (
+                                                        <div className="absolute -top-3 -right-3 bg-yellow-500 text-white rounded-full p-1 shadow-md z-10">
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <div>
+                                                        <h4 className="font-bold text-lg text-gray-800 mb-2">{paket.nama_paket}</h4>
+                                                        <p className="text-xs text-gray-500 line-clamp-3 leading-relaxed">{paket.deskripsi}</p>
                                                     </div>
-                                                    <p className="text-sm text-gray-500 line-clamp-3 leading-relaxed">{paket.deskripsi}</p>
+                                                    <div className="mt-4 pt-4 border-t border-gray-100/50">
+                                                        <p className="text-black font-extrabold text-xl">{formatRupiah(paket.harga)}</p>
+                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">/ Token</p>
+                                                    </div>
                                                 </div>
-                                                <div className="mt-4 pt-4 border-t border-gray-100">
-                                                    <p className="text-blue-600 font-extrabold text-lg">{formatRupiah(paket.harga)}</p>
-                                                    <p className="text-[10px] text-gray-400 font-semibold uppercase">Per Token</p>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
                                     </div>
 
-                                    {/* Area Detail Pembayaran */}
-                                    {selectedPaket && (
-                                        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm animate-[fadeIn_0.3s_ease-in-out]">
-                                            <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                                <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    {/* KOLOM KANAN: Checkout Summary */}
+                                    <div className="w-full lg:w-96 bg-gray-50 border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col shadow-[rgba(0,0,0,0.05)_0px_0px_15px_-3px_inset]">
+                                        <div className="p-6 flex-1">
+                                            <h4 className="font-bold text-gray-800 mb-6 text-sm uppercase tracking-wide flex items-center gap-2">
+                                                <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                                                 Ringkasan Pesanan
                                             </h4>
                                             
-                                            <div className="space-y-3">
-                                                <div className="flex justify-between items-center text-sm">
-                                                    <span className="text-gray-600">Paket Dipilih</span>
-                                                    <span className="font-semibold text-gray-900">{selectedPaket.nama_paket}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center text-sm">
-                                                    <span className="text-gray-600">Harga Satuan</span>
-                                                    <span className="font-semibold text-gray-900">{formatRupiah(selectedPaket.harga)}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center py-2">
-                                                    <span className="text-sm text-gray-600 font-medium">Jumlah Token</span>
-                                                    <div className="flex items-center bg-gray-50 border border-gray-300 rounded-lg overflow-hidden">
-                                                        <button onClick={handleDecrement} disabled={quantity <= 0} className="px-4 py-1.5 text-gray-600 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                                                            <span className="font-bold text-lg leading-none">-</span>
-                                                        </button>
-                                                        <div className="w-12 text-center border-x border-gray-200 bg-white py-1.5 font-bold text-gray-800">{quantity}</div>
-                                                        <button onClick={handleIncrement} className="px-4 py-1.5 text-gray-600 hover:bg-gray-200 transition-colors">
-                                                            <span className="font-bold text-lg leading-none">+</span>
-                                                        </button>
+                                            {selectedPaket ? (
+                                                <div className="space-y-6 animate-fade-in">
+                                                    <div className="bg-white rounded-xl p-4 border border-yellow-200 shadow-sm">
+                                                        <p className="text-xs text-gray-500 mb-1">Paket Terpilih</p>
+                                                        <p className="font-bold text-lg text-gray-900">{selectedPaket.nama_paket}</p>
+                                                        <p className="text-yellow-700 font-bold mt-1">{formatRupiah(selectedPaket.harga)}</p>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="text-xs font-bold text-gray-500 mb-2 block">JUMLAH TOKEN</label>
+                                                        <div className="flex items-center bg-white rounded-lg p-1.5 border border-gray-300 shadow-sm">
+                                                            <button onClick={handleDecrement} disabled={quantity <= 0} className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-md text-gray-600 hover:bg-gray-200 disabled:opacity-50 transition-all font-bold text-lg">-</button>
+                                                            <input 
+                                                                type="number" 
+                                                                value={quantity}
+                                                                readOnly
+                                                                className="flex-1 bg-transparent text-center font-bold text-xl text-gray-900 focus:outline-none"
+                                                            />
+                                                            <button onClick={handleIncrement} className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-md hover:bg-gray-800 transition-all font-bold text-lg shadow-md">+</button>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="pt-4 border-t border-dashed border-gray-300">
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <span className="text-sm text-gray-600">Total Tagihan</span>
+                                                            <span className="text-2xl font-extrabold text-black">{formatRupiah(selectedPaket.harga * quantity)}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <hr className="border-dashed border-gray-200 my-2" />
-                                                <div className="flex justify-between items-center bg-yellow-50 p-3 rounded-lg border border-yellow-100">
-                                                    <span className="text-base font-bold text-gray-800">Total Pembayaran</span>
-                                                    <span className="text-2xl font-bold text-yellow-600">{formatRupiah(selectedPaket.harga * quantity)}</span>
+                                            ) : (
+                                                <div className="h-64 flex flex-col items-center justify-center text-center text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-xl bg-white/50">
+                                                    <svg className="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                                                    <p className="font-medium">Pilih paket di sebelah kiri<br/>untuk melihat rincian.</p>
                                                 </div>
-                                            </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
 
-                                {/* 3. FOOTER (FIXED) - Shrink-0 */}
-                                <div className="flex-shrink-0 bg-gray-50 px-6 py-4 flex flex-col sm:flex-row-reverse gap-3 border-t border-gray-100 z-10">
-                                    <button 
-                                        type="button" 
-                                        onClick={handleCheckout}
-                                        disabled={isLoading || !selectedPaket || quantity <= 0}
-                                        className="w-full sm:w-auto inline-flex justify-center items-center rounded-xl border border-transparent shadow-lg shadow-gray-300 px-8 py-3 bg-black text-base font-bold text-white hover:bg-gray-800 focus:outline-none disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed transition-all transform active:scale-95"
-                                    >
-                                        {isLoading ? (
-                                            <>
-                                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                                Memproses...
-                                            </>
-                                        ) : 'Lanjut Pembayaran'}
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setIsModalOpen(false)}
-                                        className="w-full sm:w-auto inline-flex justify-center items-center rounded-xl border border-gray-300 shadow-sm px-6 py-3 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none transition-all"
-                                    >
-                                        Batal
-                                    </button>
+                                        <div className="p-6 bg-white border-t border-gray-200 sticky bottom-0">
+                                            <button 
+                                                onClick={handleCheckout}
+                                                disabled={isLoading || !selectedPaket || quantity <= 0}
+                                                className="w-full rounded-xl bg-black py-4 text-sm font-bold text-white shadow-lg transition-all hover:bg-gray-800 hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 flex justify-center items-center gap-2"
+                                            >
+                                                {isLoading ? (
+                                                    <>
+                                                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                        Memproses...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        Bayar Sekarang
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </DashboardLayout>
     );

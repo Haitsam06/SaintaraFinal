@@ -24,14 +24,18 @@ class Pembayaran extends Model
     protected $fillable = [
         'id_transaksi',
         'customer_id',
+        'instansi_id',
         'paket_id',
         'jumlah_bayar',
         'status_pembayaran', // 'berhasil', 'gagal', 'menunggu'
         'id_gateway',        // ID dari Midtrans
         'metode_pembayaran',
+        'jumlah_token',
         'url_pembayaran',
         'waktu_dibayar',
-        'waktu_kadaluarsa'
+        'waktu_kadaluarsa',
+        'created_at',
+        'updated_at',
     ];
 
     protected $casts = [
@@ -45,6 +49,11 @@ class Pembayaran extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'id_customer');
+    }
+
+    public function instansi()
+    {
+        return $this->belongsTo(Instansi::class, 'instansi_id', 'id_instansi');
     }
 
     // Transaksi ini beli paket apa?

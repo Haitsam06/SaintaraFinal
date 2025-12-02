@@ -1,473 +1,451 @@
-import React from 'react';
-import InstansiLayout from '@/layouts/dashboardLayoutInstansi';
-import { Head, useForm, usePage, Link } from '@inertiajs/react';
+import React, { useState } from "react";
+import { Head, useForm, usePage, Link } from "@inertiajs/react";
+import DashboardLayout from "@/layouts/dashboardLayoutInstansi";
 
 type TestPackage = {
-    id: string;
-    slug: string;
-    title: string;
-    description: string | null;
-    token_cost: number;
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  token_cost: number;
 };
 
-type ParticipantInput = {
-    full_name: string;
-    nickname: string;
-    email: string;
-    phone: string;
-    country: string;
-    city: string;
-    gender: string;
-    blood_type: string;
+type Participant = {
+  full_name: string;
+  nickname: string;
+  email: string;
+  phone: string;
+  country: string;
+  city: string;
+  gender: string;
+  blood_type: string;
 };
 
-type PageProps = {
-    test_package: TestPackage;
-    errors: Record<string, string>;
-    wa_url?: string; // URL WA dari backend (optional)
-    flash?: {
-        success?: string;
-    };
-};
+interface PageProps {
+  test_package: TestPackage;
+  saldo_token: number;
+  wa_url?: string | null;
+  success?: string | null;
+  errors: Record<string, string>;
+}
 
 export default function FormTesInstansi() {
-    const { props } = usePage<PageProps>();
-    const { test_package, errors, wa_url } = props;
+  const { test_package, saldo_token, wa_url, success, errors } =
+    usePage<PageProps>().props;
 
-    // begitu wa_url berubah & ada nilainya → buka WhatsApp
-    React.useEffect(() => {
-        if (wa_url) {
-            window.open(wa_url, '_blank');
-        }
-    }, [wa_url]);
+  // form state dengan Inertia
+  const { data, setData, post, processing } = useForm<{
+    test_package_id: string;
+    nama_golongan: string;
+    file: File | null;
+    participants: Participant[];
+  }>({
+    test_package_id: test_package?.id ?? "",
+    nama_golongan: "",
+    file: null,
+    participants: [
+      {
+        full_name: "",
+        nickname: "",
+        email: "",
+        phone: "",
+        country: "",
+        city: "",
+        gender: "",
+        blood_type: "",
+      },
+    ],
+  });
 
-    const { data, setData, post, processing } = useForm<{
-        test_package_id: string;
-        nama_golongan: string;
-        file: File | null;
-        participants: ParticipantInput[];
-    }>({
-        test_package_id: test_package.id,
-        nama_golongan: '',
-        file: null,
-        participants: [
-            {
-                full_name: '',
-                nickname: '',
-                email: '',
-                phone: '',
-                country: '',
-                city: '',
-                gender: '',
-                blood_type: '',
-            },
-        ],
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const handleAddParticipant = () => {
+    setData("participants", [
+      ...data.participants,
+      {
+        full_name: "",
+        nickname: "",
+        email: "",
+        phone: "",
+        country: "",
+        city: "",
+        gender: "",
+        blood_type: "",
+      },
+    ]);
+  };
+
+  const handleRemoveParticipant = (index: number) => {
+    if (data.participants.length === 1) return;
+    const copy = [...data.participants];
+    copy.splice(index, 1);
+    setData("participants", copy);
+  };
+
+  const handleChangeParticipant = (
+    index: number,
+    field: keyof Participant,
+    value: string
+  ) => {
+    const copy = [...data.participants];
+    copy[index] = { ...copy[index], [field]: value };
+    setData("participants", copy);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLocalError(null);
+
+    // hitung peserta manual saja (Excel akan dicek totalnya di backend)
+    const manualCount = data.participants.filter(
+      (p) => p.full_name || p.email
+    ).length;
+
+    if (!data.file && manualCount === 0) {
+      setLocalError(
+        "Isi minimal satu peserta manual atau upload file Excel."
+      );
+      return;
+    }
+
+    // cek kasar token terhadap peserta manual (validasi penuh tetap di backend)
+    if (manualCount >= saldo_token) {
+      setLocalError(
+        `Token anda tidak mencukupi untuk peserta manual (${manualCount}) dengan saldo token ${saldo_token}.`
+      );
+      // tetap boleh submit kalau mau, karena Excel + total final dicek backend
+      // return;  // kalau ingin benar-benar blokir di frontend, buka komentar ini
+    }
+
+    post("/instansi/uploadPeserta", {
+      forceFormData: true,
+      preserveScroll: true,
     });
+  };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0] ?? null;
-        setData('file', file);
-    };
+  const formatRupiah = (value: number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(value);
 
-    const handleParticipantChange = (
-        index: number,
-        field: keyof ParticipantInput,
-        value: string
-    ) => {
-        const copy = [...data.participants];
-        copy[index] = { ...copy[index], [field]: value };
-        setData('participants', copy);
-    };
+  return (
+    <DashboardLayout>
+      <Head title="Input Peserta Tes Instansi" />
 
-    const addParticipantRow = () => {
-        setData('participants', [
-            ...data.participants,
-            {
-                full_name: '',
-                nickname: '',
-                email: '',
-                phone: '',
-                country: '',
-                city: '',
-                gender: '',
-                blood_type: '',
-            },
-        ]);
-    };
-
-    const removeParticipantRow = (index: number) => {
-        if (data.participants.length === 1) return;
-        const copy = [...data.participants];
-        copy.splice(index, 1);
-        setData('participants', copy);
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-
-        post('/instansi/uploadExcel', {
-            forceFormData: true, // penting untuk file upload
-            preserveScroll: true,
-        });
-    };
-
-    const participantsError = errors['participants'] ?? '';
-
-    return (
-        <InstansiLayout>
-            <Head title="Input Peserta Tes Instansi" />
-
-            <div className="space-y-8 font-poppins text-black">
-                {/* Header */}
-                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-900">
-                            Input Peserta Tes – {test_package.title}
-                        </h2>
-                        <p className="text-sm text-gray-500 mt-1">
-                            Anda dapat mengupload file Excel dan/atau mengisi data peserta
-                            secara manual. Sistem akan menggabungkan semuanya.
-                        </p>
-                    </div>
-                    <Link
-                        href="/instansi/tesInstansi"
-                        className="text-sm text-saintara-yellow hover:underline"
-                    >
-                        &larr; Kembali ke Daftar Paket
-                    </Link>
-                </div>
-
-                {/* Card */}
-                <div className="rounded-[2rem] bg-white p-8 shadow-sm border border-gray-100">
-                    {/* Info Paket */}
-                    <div className="mb-6 rounded-2xl bg-gray-50 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                        <div>
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                Paket Tes
-                            </p>
-                            <h3 className="text-lg font-bold text-gray-900">
-                                {test_package.title}
-                            </h3>
-                            {test_package.description && (
-                                <p className="mt-1 text-sm text-gray-500">
-                                    {test_package.description}
-                                </p>
-                            )}
-                        </div>
-                        <div className="text-right">
-                            <p className="text-xs text-gray-500">Biaya per peserta</p>
-                            <p className="text-xl font-extrabold text-gray-900">
-                                {test_package.token_cost} Token
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Form */}
-                    <form
-                        onSubmit={handleSubmit}
-                        encType="multipart/form-data"
-                        className="space-y-8"
-                    >
-                        {/* Nama Golongan / Batch */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Nama Golongan / Batch
-                            </label>
-                            <input
-                                type="text"
-                                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-black focus:border-saintara-yellow focus:ring-saintara-yellow"
-                                placeholder="Contoh: Batch Training November 2025"
-                                value={data.nama_golongan}
-                                onChange={(e) => setData('nama_golongan', e.target.value)}
-                                required
-                            />
-                            {errors.nama_golongan && (
-                                <p className="mt-1 text-xs text-red-500">
-                                    {errors.nama_golongan}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Bagian 1: Upload Excel */}
-                        <div className="space-y-3">
-                            <h4 className="text-sm font-semibold text-gray-800">
-                                1. Upload File Excel (Opsional)
-                            </h4>
-                            <p className="text-xs text-gray-500">
-                                Anda dapat mengunduh template, mengisi data peserta di Excel,
-                                lalu upload kembali. Jika tidak ingin menggunakan Excel, lewati
-                                bagian ini dan isi peserta secara manual di bawah.
-                            </p>
-
-                            <div className="flex flex-col md:flex-row gap-3">
-                                <a
-                                    href="/templates/peserta_instansi.xlsx"
-                                    className="inline-flex items-center justify-center rounded-xl border border-gray-300 px-4 py-2 text-xs md:text-sm font-medium text-gray-700 hover:bg-gray-50"
-                                >
-                                    📥 Download Template Excel
-                                </a>
-
-                                <label className="flex-1 inline-flex items-center gap-3 rounded-xl border border-dashed border-gray-300 px-4 py-2 text-xs md:text-sm text-gray-600 cursor-pointer hover:bg-gray-50">
-                                    <span>📂 Pilih File Excel</span>
-                                    <input
-                                        type="file"
-                                        className="hidden"
-                                        accept=".xlsx,.xls"
-                                        onChange={handleFileChange}
-                                    />
-                                    {data.file && (
-                                        <span className="text-[11px] text-gray-700 truncate max-w-[160px]">
-                                            {data.file.name}
-                                        </span>
-                                    )}
-                                </label>
-                            </div>
-
-                            {errors.file && (
-                                <p className="mt-1 text-xs text-red-500">{errors.file}</p>
-                            )}
-                        </div>
-
-                        {/* Bagian 2: Peserta Manual */}
-                        <div className="space-y-3">
-                            <h4 className="text-sm font-semibold text-gray-800">
-                                2. Tambah Peserta Manual (Opsional)
-                            </h4>
-                            <p className="text-xs text-gray-500">
-                                Isi data peserta di bawah ini. Anda dapat menambahkan beberapa
-                                peserta sekaligus. Minimal harus ada salah satu: file Excel
-                                atau minimal satu peserta manual.
-                            </p>
-
-                            {participantsError && (
-                                <p className="mt-1 text-xs text-red-500">
-                                    {participantsError}
-                                </p>
-                            )}
-
-                            <div className="space-y-4">
-                                {data.participants.map((p, idx) => {
-                                    const prefix = `participants.${idx}`;
-                                    return (
-                                        <div
-                                            key={idx}
-                                            className="rounded-2xl border border-gray-200 p-4 bg-gray-50/60"
-                                        >
-                                            <div className="flex items-center justify-between mb-3">
-                                                <p className="text-xs font-semibold text-gray-600">
-                                                    Peserta #{idx + 1}
-                                                </p>
-                                                {data.participants.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeParticipantRow(idx)}
-                                                        className="text-[11px] text-red-500 hover:underline"
-                                                    >
-                                                        Hapus
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                {/* Nama Lengkap */}
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                        Nama Lengkap
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs text-black focus:border-saintara-yellow focus:ring-saintara-yellow"
-                                                        value={p.full_name}
-                                                        onChange={(e) =>
-                                                            handleParticipantChange(
-                                                                idx,
-                                                                'full_name',
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                    />
-                                                    {errors[`${prefix}.full_name`] && (
-                                                        <p className="mt-1 text-[11px] text-red-500">
-                                                            {errors[`${prefix}.full_name`]}
-                                                        </p>
-                                                    )}
-                                                </div>
-
-                                                {/* Nama Panggilan */}
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                        Nama Panggilan
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs text-black focus:border-saintara-yellow focus:ring-saintara-yellow"
-                                                        value={p.nickname}
-                                                        onChange={(e) =>
-                                                            handleParticipantChange(
-                                                                idx,
-                                                                'nickname',
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                    />
-                                                </div>
-
-                                                {/* Email */}
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                        Email
-                                                    </label>
-                                                    <input
-                                                        type="email"
-                                                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs text-black focus:border-saintara-yellow focus:ring-saintara-yellow"
-                                                        value={p.email}
-                                                        onChange={(e) =>
-                                                            handleParticipantChange(
-                                                                idx,
-                                                                'email',
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                    />
-                                                    {errors[`${prefix}.email`] && (
-                                                        <p className="mt-1 text-[11px] text-red-500">
-                                                            {errors[`${prefix}.email`]}
-                                                        </p>
-                                                    )}
-                                                </div>
-
-                                                {/* No. Telepon */}
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                        No. Telepon
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs text-black focus:border-saintara-yellow focus:ring-saintara-yellow"
-                                                        value={p.phone}
-                                                        onChange={(e) =>
-                                                            handleParticipantChange(
-                                                                idx,
-                                                                'phone',
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                    />
-                                                </div>
-
-                                                {/* Negara */}
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                        Negara
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs text-black focus:border-saintara-yellow focus:ring-saintara-yellow"
-                                                        value={p.country}
-                                                        onChange={(e) =>
-                                                            handleParticipantChange(
-                                                                idx,
-                                                                'country',
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                    />
-                                                </div>
-
-                                                {/* Kota / Divisi */}
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                        Kota / Divisi
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs text-black focus:border-saintara-yellow focus:ring-saintara-yellow"
-                                                        value={p.city}
-                                                        onChange={(e) =>
-                                                            handleParticipantChange(
-                                                                idx,
-                                                                'city',
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                    />
-                                                </div>
-
-                                                {/* Jenis Kelamin */}
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                        Jenis Kelamin
-                                                    </label>
-                                                    <select
-                                                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs text-black focus:border-saintara-yellow focus:ring-saintara-yellow"
-                                                        value={p.gender}
-                                                        onChange={(e) =>
-                                                            handleParticipantChange(
-                                                                idx,
-                                                                'gender',
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                    >
-                                                        <option value="">Pilih</option>
-                                                        <option value="L">Laki-laki</option>
-                                                        <option value="P">Perempuan</option>
-                                                    </select>
-                                                </div>
-
-                                                {/* Golongan Darah */}
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                        Golongan Darah
-                                                    </label>
-                                                    <select
-                                                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs text-black focus:border-saintara-yellow focus:ring-saintara-yellow"
-                                                        value={p.blood_type}
-                                                        onChange={(e) =>
-                                                            handleParticipantChange(
-                                                                idx,
-                                                                'blood_type',
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                    >
-                                                        <option value="">Pilih</option>
-                                                        <option value="A">A</option>
-                                                        <option value="B">B</option>
-                                                        <option value="AB">AB</option>
-                                                        <option value="O">O</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={addParticipantRow}
-                                className="mt-2 inline-flex items-center rounded-full border border-dashed border-gray-400 px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                            >
-                                + Tambah Peserta
-                            </button>
-                        </div>
-
-                        {/* Tombol Submit */}
-                        <div className="pt-4 border-t border-gray-100">
-                            <button
-                                type="submit"
-                                disabled={processing}
-                                className="w-full rounded-full bg-saintara-black px-4 py-3 text-sm font-bold text-white hover:bg-gray-800 disabled:opacity-60"
-                            >
-                                {processing
-                                    ? 'Memproses Peserta...'
-                                    : 'Simpan Peserta & Kirim ke WhatsApp Admin'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
+      <div className="min-h-screen bg-[#F5F7FB] px-4 py-6">
+        <div className="max-w-5xl mx-auto space-y-6">
+          {/* Header Paket */}
+          <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">PAKET TES</p>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {test_package.title}
+              </h1>
+              <p className="text-sm text-gray-500 mt-2">
+                {test_package.description}
+              </p>
             </div>
-        </InstansiLayout>
-    );
+            <div className="text-right">
+              <p className="text-xs text-gray-500 mb-1">Biaya per peserta</p>
+              <p className="text-xl font-extrabold text-yellow-500">
+                {formatRupiah(test_package.token_cost)}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Saldo token instansi:{" "}
+                <span className="font-semibold">{saldo_token}</span> token
+              </p>
+            </div>
+          </div>
+
+          {/* Notifikasi sukses & WA */}
+          {success && (
+            <div className="bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 flex items-center justify-between">
+              <span>{success}</span>
+              {wa_url && (
+                <a
+                  href={wa_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="ml-4 inline-flex items-center px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700"
+                >
+                  Kirim ke WhatsApp Admin
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Error Lokal */}
+          {localError && (
+            <div className="bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3">
+              {localError}
+            </div>
+          )}
+
+          {/* Error dari backend */}
+          {errors.participants && (
+            <div className="bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3">
+              {errors.participants}
+            </div>
+          )}
+          {errors.file && (
+            <div className="bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3">
+              {errors.file}
+            </div>
+          )}
+
+          {/* FORM */}
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white rounded-2xl shadow-sm p-6 space-y-8"
+          >
+            {/* Nama Golongan / Batch */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-1">
+                Nama Golongan / Batch
+              </label>
+              <input
+                type="text"
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                placeholder="Contoh: Batch Training November 2025"
+                value={data.nama_golongan}
+                onChange={(e) => setData("nama_golongan", e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Upload Excel */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">
+                    1. Upload File Excel (Opsional)
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Anda dapat mengunduh template, mengisi data peserta di
+                    Excel, lalu upload kembali.
+                  </p>
+                </div>
+
+                {/* PENTING: gunakan <a> biasa untuk download file */}
+                <a
+                  href="/instansi/downloadFormTemplate"
+                  className="inline-flex items-center px-3 py-1.5 rounded-lg border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Unduh Template Excel
+                </a>
+              </div>
+
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(e) =>
+                  setData("file", e.target.files ? e.target.files[0] : null)
+                }
+                className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100"
+              />
+              <p className="text-[11px] text-gray-400">
+                Maksimal 5 MB, format .xlsx atau .xls
+              </p>
+            </div>
+
+            {/* Peserta Manual */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-gray-800">
+                  2. Tambah Peserta Manual (Opsional)
+                </p>
+                <button
+                  type="button"
+                  onClick={handleAddParticipant}
+                  className="text-xs font-semibold text-yellow-600 hover:text-yellow-700"
+                >
+                  + Tambah Peserta
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {data.participants.map((p, idx) => (
+                  <div
+                    key={idx}
+                    className="border border-gray-200 rounded-2xl p-4 space-y-3"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm font-semibold text-gray-700">
+                        Peserta #{idx + 1}
+                      </p>
+                      {data.participants.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveParticipant(idx)}
+                          className="text-xs text-red-500 hover:text-red-600"
+                        >
+                          Hapus
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] text-gray-600">
+                          Nama Lengkap
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border rounded-lg px-2 py-1.5 text-sm"
+                          value={p.full_name}
+                          onChange={(e) =>
+                            handleChangeParticipant(
+                              idx,
+                              "full_name",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-gray-600">
+                          Nama Panggilan
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border rounded-lg px-2 py-1.5 text-sm"
+                          value={p.nickname}
+                          onChange={(e) =>
+                            handleChangeParticipant(
+                              idx,
+                              "nickname",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-gray-600">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          className="w-full border rounded-lg px-2 py-1.5 text-sm"
+                          value={p.email}
+                          onChange={(e) =>
+                            handleChangeParticipant(
+                              idx,
+                              "email",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-gray-600">
+                          No. Telepon
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border rounded-lg px-2 py-1.5 text-sm"
+                          value={p.phone}
+                          onChange={(e) =>
+                            handleChangeParticipant(
+                              idx,
+                              "phone",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-gray-600">
+                          Negara
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border rounded-lg px-2 py-1.5 text-sm"
+                          value={p.country}
+                          onChange={(e) =>
+                            handleChangeParticipant(
+                              idx,
+                              "country",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-gray-600">
+                          Kota / Divisi
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border rounded-lg px-2 py-1.5 text-sm"
+                          value={p.city}
+                          onChange={(e) =>
+                            handleChangeParticipant(
+                              idx,
+                              "city",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-gray-600">
+                          Jenis Kelamin
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border rounded-lg px-2 py-1.5 text-sm"
+                          value={p.gender}
+                          onChange={(e) =>
+                            handleChangeParticipant(
+                              idx,
+                              "gender",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-gray-600">
+                          Golongan Darah
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border rounded-lg px-2 py-1.5 text-sm"
+                          value={p.blood_type}
+                          onChange={(e) =>
+                            handleChangeParticipant(
+                              idx,
+                              "blood_type",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Tombol Submit */}
+            <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-4">
+              <p className="text-xs text-gray-500">
+                Minimal salah satu: upload file Excel atau isi minimal satu
+                peserta manual.
+              </p>
+              <button
+                type="submit"
+                disabled={processing}
+                className="inline-flex items-center px-5 py-2.5 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-black text-sm font-semibold shadow-md disabled:opacity-60"
+              >
+                {processing ? "Memproses..." : "Kirim Data Peserta"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
 }
