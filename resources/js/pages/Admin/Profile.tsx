@@ -1,4 +1,4 @@
-import DashboardLayout from '@/layouts/dashboard-layout-personal';
+import DashboardLayout from '@/layouts/dashboardLayoutAdmin';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler, useRef, useState } from 'react';
 import { HiCamera, HiUser } from 'react-icons/hi';

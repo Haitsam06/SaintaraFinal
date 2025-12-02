@@ -16,9 +16,8 @@ class Customer extends Authenticatable
     public $incrementing = false;
     protected $keyType = 'string';
 
-    // --- TAMBAHAN PENTING: Append Virtual Attributes ---
+    // Virtual attributes (dipakai pada guard/auth)
     protected $appends = ['id', 'name'];
-    // ---------------------------------------------------
 
     protected $fillable = [
         'id_customer',
@@ -36,18 +35,37 @@ class Customer extends Authenticatable
         'gol_darah',
         'foto',
         'status_akun',
+
+        // Tambahan OTP / verifikasi / reset password
+        'verification_code',
+        'verification_code_expires_at',
+        'reset_password_code',
+        'reset_password_expires_at',
+        'email_verified_at',
     ];
 
-    protected $hidden = ['password', 'remember_token'];
-    protected $casts = ['password' => 'hashed'];
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
 
-    // --- AKSESOR 1: Mapping id_customer ke id ---
+    protected $casts = [
+        'password'                     => 'hashed',
+        'verification_code_expires_at' => 'datetime',
+        'reset_password_expires_at'    => 'datetime',
+        'email_verified_at'            => 'datetime',
+        'tgl_lahir'                    => 'date',
+    ];
+
+    // --- AKSESOR: mapping ke atribut standar auth ---
+
+    // id_customer -> id
     public function getIdAttribute()
     {
         return $this->id_customer;
     }
 
-    // --- AKSESOR 2: Mapping nama_lengkap ke name ---
+    // nama_lengkap -> name
     public function getNameAttribute()
     {
         return $this->nama_lengkap;

@@ -41,7 +41,7 @@ export default function Navbar() {
                                 dashboardLink = '/admin/dashboardAdmin';
                             } else if (rid === 3) {
                                 // --- PERBAIKAN LINK DI SINI ---
-                                dashboardLink = '/personal/dashboard';
+                                dashboardLink = '/personal/dashboardPersonal';
                             } else if (rid === 4) {
                                 dashboardLink = '/instansi/dashboardInstansi';
                             }
