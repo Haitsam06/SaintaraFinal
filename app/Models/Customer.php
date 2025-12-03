@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable; // <--- PENTING
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens; // <--- PENTING
+use Laravel\Sanctum\HasApiTokens;
 
 class Customer extends Authenticatable
 {
@@ -16,24 +16,54 @@ class Customer extends Authenticatable
     public $incrementing = false;
     protected $keyType = 'string';
 
+    protected $appends = ['id', 'name'];
+
     protected $fillable = [
-    'id_customer',
-    'role_id',
-    'nama_lengkap',
-    'nama_panggilan',
-    'email',
-    'password',
-    'no_telp',
-    'alamat',
-    'negara',
-    'tgl_lahir',
-    'kota',
-    'jenis_kelamin',
-    'gol_darah',
-    'foto',
-    'status_akun',
+        'id_customer',
+        'role_id',
+        'nama_lengkap',
+        'nama_panggilan',
+        'email',
+        'password',
+        'no_telp',
+        'alamat',
+        'negara',
+        'tgl_lahir',
+        'kota',
+        'jenis_kelamin',
+        'gol_darah',
+        'foto',
+        'status_akun',
+        'verification_code',
+        'verification_code_expires_at',
+        'reset_password_code',
+        'reset_password_expires_at',
+        'email_verified_at',
     ];
 
-    protected $hidden = ['password'];
-    protected $casts = ['password' => 'hashed'];
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected $casts = [
+        'password' => 'hashed',
+        'verification_code_expires_at' => 'datetime',
+        'reset_password_expires_at' => 'datetime',
+        'email_verified_at' => 'datetime',
+        'tgl_lahir' => 'date',
+    ];
+
+    // --- STANDARDISASI ATRIBUT ---
+
+    public function getIdAttribute()
+    {
+        return $this->getAttribute('id_customer');
+    }
+
+    // Mapping 'nama_lengkap' ke 'name'
+    public function getNameAttribute()
+    {
+        return $this->getAttribute('nama_lengkap');
+    }
 }

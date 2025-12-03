@@ -1,16 +1,41 @@
-import AuthLayoutTemplate from '@/layouts/auth/auth-simple-layout';
+import { PropsWithChildren, ReactNode } from 'react';
 
-export default function AuthLayout({
-    children,
-    title,
-    ...props
-}: {
-    children: React.ReactNode;
+interface AuthLayoutProps {
     title: string;
-}) {
+    description?: string;
+    children: ReactNode;
+}
+
+export default function AuthLayout({ title, description, children }: AuthLayoutProps) {
     return (
-        <AuthLayoutTemplate title={title} {...props}>
-            {children}
-        </AuthLayoutTemplate>
+        <div className="flex min-h-screen items-center justify-center bg-saintara-yellow p-4">
+            <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl">
+
+                {/* Header */}
+                <div className="mb-6 text-center">
+                    <div className="mb-4 flex justify-center">
+                        <img
+                            src="/assets/logo/5.png"
+                            alt="Saintara Logo"
+                            className="h-16 w-16"
+                        />
+                    </div>
+
+                    {/* PAKSA HITAM */}
+                    <h1 className="text-2xl font-bold !text-black !opacity-100">
+                        {title}
+                    </h1>
+
+                    {description && (
+                        <p className="mt-2 text-sm text-gray-700">
+                            {description}
+                        </p>
+                    )}
+                </div>
+
+                {/* Content */}
+                {children}
+            </div>
+        </div>
     );
 }

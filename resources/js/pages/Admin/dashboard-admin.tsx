@@ -1,188 +1,192 @@
-import { ProtectedRoute } from '@/hooks/useAuth'; // Import Hook Auth
-import DashboardLayoutAdmin from '@/layouts/dashboardLayoutAdmin'; // Import Layout yang BENAR
+import AdminDashboardLayout from '@/layouts/dashboardLayoutAdmin';
 import { Head } from '@inertiajs/react';
-import { HiArrowSmRight, HiChatAlt2, HiCurrencyDollar, HiDesktopComputer, HiMicrophone, HiUserGroup, HiUsers } from 'react-icons/hi';
-import { HiWrench } from 'react-icons/hi2';
+import { HiArrowSmRight, HiChatAlt2, HiCurrencyDollar, HiTrendingUp, HiUserGroup, HiUsers } from 'react-icons/hi';
 
-export default function Dashboard() {
+// Definisikan tipe Props
+interface DashboardProps {
+    stats: {
+        total_pendapatan: number;
+        customer_aktif: number;
+        instansi_aktif: number;
+        agenda: Array<{
+            id: number;
+            title: string;
+            date: string;
+            time: string;
+            type: string;
+        }>;
+        distribusi: {
+            personal: number;
+            institution: number;
+            gift: number;
+        };
+    };
+}
+
+export default function Dashboard({ stats }: DashboardProps) {
+    // Helper untuk format Rupiah
+    const formatRupiah = (number: number) => {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+        }).format(number);
+    };
+
     return (
-        // 1. Cek apakah user boleh masuk (Role 1 & 2)
-        <ProtectedRoute requiredRoles={[1, 2]}>
-            {/* 2. Bungkus dengan Layout Admin */}
-            <DashboardLayoutAdmin>
-                <Head title="Dashboard Admin" />
+        <AdminDashboardLayout>
+            <Head title="Dashboard Admin" />
 
-                <div className="space-y-6 font-poppins">
-                    {/* --- BAGIAN 1: KARTU STATISTIK ATAS --- */}
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-                        {/* Card 1 */}
-                        <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+            <div className="space-y-8 font-sans">
+                {/* ======================= */}
+                {/* BAGIAN 1: STATS CARDS */}
+                {/* ======================= */}
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    {/* Card 1: Total Pendapatan */}
+                    <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+                        <div className="flex items-start justify-between">
                             <div>
-                                <p className="mb-1 text-xs text-gray-400">Total Tes Bulan ini</p>
-                                <h3 className="text-3xl font-bold text-gray-800">500</h3>
+                                <p className="text-xs font-medium tracking-wider text-gray-400 uppercase">Total Pendapatan</p>
+                                <h3 className="mt-2 text-2xl font-bold text-gray-900">{formatRupiah(stats.total_pendapatan)}</h3>
                             </div>
-                            <div className="flex h-10 items-end gap-1">
-                                <div className="h-4 w-1.5 rounded-full bg-yellow-100"></div>
-                                <div className="h-6 w-1.5 rounded-full bg-yellow-200"></div>
-                                <div className="h-8 w-1.5 rounded-full bg-yellow-300"></div>
-                                <div className="h-10 w-1.5 rounded-full bg-yellow-500"></div>
-                            </div>
-                        </div>
-
-                        {/* Card 2 */}
-                        <div className="flex items-center gap-4 rounded-3xl bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400 text-white shadow-lg shadow-yellow-200">
-                                <HiUserGroup className="h-6 w-6" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-400">Agen Aktif</p>
-                                <h3 className="text-2xl font-bold text-gray-800">321</h3>
-                            </div>
-                        </div>
-
-                        {/* Card 3 */}
-                        <div className="flex items-center gap-4 rounded-3xl bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400 text-white shadow-lg shadow-yellow-200">
-                                <HiMicrophone className="h-6 w-6" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-400">Agenda Talkshow</p>
-                                <h3 className="text-xl font-bold text-gray-800">12 Talkshow</h3>
-                            </div>
-                        </div>
-
-                        {/* Card 4 */}
-                        <div className="flex items-center gap-4 rounded-3xl bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400 text-white shadow-lg shadow-yellow-200">
-                                <HiChatAlt2 className="h-6 w-6" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-400">Agenda Webinar</p>
-                                <h3 className="text-xl font-bold text-gray-800">1 Webinar</h3>
+                            <div className="rounded-full bg-yellow-100 p-3 text-yellow-600">
+                                <HiCurrencyDollar className="h-6 w-6" />
                             </div>
                         </div>
                     </div>
 
-                    {/* --- BAGIAN 2: CHART & LIST TENGAH --- */}
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                        {/* Donut Chart */}
-                        <div className="rounded-3xl bg-white p-8 shadow-sm lg:col-span-2">
-                            <h3 className="mb-6 text-xl font-bold text-gray-800">Distribusi Tes</h3>
-                            <div className="flex flex-col items-center justify-center gap-10 md:flex-row">
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-3">
-                                        <span className="h-4 w-4 rounded-full bg-[#FCD34D]"></span>
-                                        <span className="text-sm font-medium text-gray-600">Personal</span>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="h-4 w-4 rounded-full bg-[#A16207]"></span>
-                                        <span className="text-sm font-medium text-gray-600">Institution</span>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="h-4 w-4 rounded-full bg-[#FFFF00]"></span>
-                                        <span className="text-sm font-medium text-gray-600">Gift</span>
-                                    </div>
-                                </div>
-                                {/* CSS Conic Gradient Chart */}
-                                <div className="relative h-48 w-48 rounded-full shadow-inner" style={{ background: 'conic-gradient(#FCD34D 0% 35%, #FFFF00 35% 45%, #A16207 45% 100%)' }}>
-                                    <div className="absolute inset-0 m-auto h-24 w-24 rounded-full bg-white shadow-sm"></div>
-                                </div>
+                    {/* Card 2: Customer Aktif */}
+                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+                        <div className="flex items-center gap-4">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                                <HiUsers className="h-7 w-7" />
                             </div>
-                        </div>
-
-                        {/* List Permohonan */}
-                        <div className="flex flex-col justify-between rounded-3xl bg-white p-8 shadow-sm lg:col-span-1">
                             <div>
-                                <h3 className="mb-6 text-lg font-bold text-gray-800">Permohonan Persetujuan</h3>
-                                <div className="relative ml-2 space-y-6 border-l-2 border-gray-100 pl-6">
-                                    <div className="relative">
-                                        <span className="absolute top-1 -left-[31px] h-3 w-3 rounded-full bg-yellow-400"></span>
-                                        <h4 className="font-bold text-gray-800">Komisi Agen</h4>
-                                        <p className="mt-1 text-xs text-gray-400">Today at 10:00 AM</p>
-                                    </div>
-                                    <div className="relative">
-                                        <span className="absolute top-1 -left-[31px] h-3 w-3 rounded-full bg-yellow-400"></span>
-                                        <h4 className="font-bold text-gray-800">Kerja Sama</h4>
-                                        <p className="mt-1 text-xs text-gray-400">Today at 07:00 AM</p>
-                                    </div>
-                                    <div className="relative">
-                                        <span className="absolute top-1 -left-[31px] h-3 w-3 rounded-full bg-gray-300"></span>
-                                        <h4 className="font-bold text-gray-800">Undangan Seminar</h4>
-                                        <p className="mt-1 text-xs text-gray-400">Yesterday at 05:00 PM</p>
-                                    </div>
-                                </div>
+                                <p className="text-xs font-medium text-gray-400">Customer Personal</p>
+                                <h3 className="text-2xl font-bold text-gray-900">{stats.customer_aktif}</h3>
                             </div>
-                            <button className="mt-4 flex items-center justify-end text-sm font-bold text-yellow-500 hover:underline">
-                                View all <HiArrowSmRight className="ml-1 h-5 w-5" />
-                            </button>
                         </div>
                     </div>
 
-                    {/* --- BAGIAN 3: BAWAH (3 KOLOM) --- */}
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                        {/* Penjualan Token */}
-                        <div className="rounded-3xl bg-white p-6 shadow-sm">
-                            <div className="mb-4 flex items-start justify-between">
-                                <div>
-                                    <p className="text-xs text-gray-400">Penjualan Token</p>
-                                    <h3 className="mt-1 text-2xl font-extrabold text-gray-900">Rp9.600.000</h3>
-                                    <span className="mt-1 inline-flex items-center text-xs font-bold text-green-500">On track</span>
-                                </div>
-                                <span className="rounded-lg bg-green-100 px-2 py-1 text-xs font-bold text-green-500">+2.45%</span>
+                    {/* Card 3: Instansi Aktif */}
+                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+                        <div className="flex items-center gap-4">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-purple-50 text-purple-600">
+                                <HiUserGroup className="h-7 w-7" />
                             </div>
-                            <div className="mt-6 flex h-32 items-end justify-between gap-2">
-                                {[40, 60, 80, 50, 70, 90, 60].map((h, i) => (
-                                    <div key={i} className="relative h-full w-3 rounded-t-md bg-gray-100">
-                                        <div style={{ height: `${h}%` }} className="absolute bottom-0 w-full rounded-t-md bg-yellow-400 transition-all hover:bg-yellow-500"></div>
-                                    </div>
-                                ))}
+                            <div>
+                                <p className="text-xs font-medium text-gray-400">Instansi Terdaftar</p>
+                                <h3 className="text-2xl font-bold text-gray-900">{stats.instansi_aktif}</h3>
                             </div>
                         </div>
+                    </div>
 
-                        {/* Laporan Tim */}
-                        <div className="flex flex-col justify-between rounded-3xl bg-white p-6 shadow-sm">
-                            <h3 className="mb-4 text-lg font-bold text-gray-800">Laporan Tim</h3>
-                            <div className="space-y-4">
-                                {[1, 2, 3].map((i) => (
-                                    <div key={i} className="flex items-center gap-3">
-                                        <img src={`https://i.pravatar.cc/150?u=${i}`} className="h-10 w-10 rounded-full bg-gray-200 object-cover" alt="User" />
-                                        <div>
-                                            <h5 className="text-sm font-bold text-gray-800">Anggota {i}</h5>
-                                            <p className="text-xs text-gray-400">Divisi {i}</p>
-                                        </div>
-                                    </div>
-                                ))}
+                    {/* Card 4: Agenda Count */}
+                    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+                        <div className="flex items-center gap-4">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-50 text-orange-600">
+                                <HiChatAlt2 className="h-7 w-7" />
                             </div>
-                            <button className="mt-2 flex items-center justify-end text-sm font-bold text-yellow-500 hover:underline">
-                                View all <HiArrowSmRight className="ml-1 h-5 w-5" />
-                            </button>
-                        </div>
-
-                        {/* Absensi */}
-                        <div className="rounded-3xl bg-white p-6 shadow-sm">
-                            <h3 className="mb-6 text-lg font-bold text-gray-800">Absensi</h3>
-                            <div className="space-y-6">
-                                <div className="flex items-center gap-4">
-                                    <HiDesktopComputer className="h-6 w-6 text-blue-500" />
-                                    <span className="font-bold text-gray-700">IT Team</span>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <HiCurrencyDollar className="h-6 w-6 text-green-500" />
-                                    <span className="font-bold text-gray-700">Finance</span>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <HiUsers className="h-6 w-6 text-pink-500" />
-                                    <span className="font-bold text-gray-700">Marketing</span>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <HiWrench className="h-6 w-6 text-yellow-600" />
-                                    <span className="font-bold text-gray-700">Ops</span>
-                                </div>
+                            <div>
+                                <p className="text-xs font-medium text-gray-400">Agenda Mendatang</p>
+                                <h3 className="text-2xl font-bold text-gray-900">{stats.agenda.length}</h3>
                             </div>
                         </div>
                     </div>
                 </div>
-            </DashboardLayoutAdmin>
-        </ProtectedRoute>
+
+                {/* ======================= */}
+                {/* BAGIAN 2: CHARTS & LIST */}
+                {/* ======================= */}
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                    {/* KOLOM KIRI: Distribusi Tes (Donut Chart) */}
+                    <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm lg:col-span-2">
+                        <div className="mb-8 flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-gray-800">Distribusi Pembelian Token</h3>
+                            <button className="text-sm font-medium text-gray-400 hover:text-yellow-600">Lihat Detail</button>
+                        </div>
+
+                        <div className="flex flex-col items-center justify-center gap-12 md:flex-row">
+                            {/* Visualisasi Donut Chart CSS */}
+                            <div
+                                className="relative h-56 w-56 rounded-full shadow-inner"
+                                style={{
+                                    background: `conic-gradient(
+                                        #FCD34D 0% ${stats.distribusi.personal}%, 
+                                        #d97706 ${stats.distribusi.personal}% ${stats.distribusi.personal + stats.distribusi.institution}%, 
+                                        #fef08a ${stats.distribusi.personal + stats.distribusi.institution}% 100%
+                                    )`,
+                                }}
+                            >
+                                {/* Inner Circle untuk efek Donut */}
+                                <div className="absolute inset-0 m-auto flex h-32 w-32 flex-col items-center justify-center rounded-full bg-white shadow-sm">
+                                    <span className="text-xs text-gray-400">Total</span>
+                                    <span className="text-xl font-bold text-gray-800">100%</span>
+                                </div>
+                            </div>
+
+                            {/* Legend */}
+                            <div className="space-y-6">
+                                <div className="flex items-start gap-4">
+                                    <span className="mt-1 h-3 w-3 flex-shrink-0 rounded-full bg-yellow-400"></span>
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-800">Personal ({stats.distribusi.personal}%)</p>
+                                        <p className="text-xs text-gray-400">Pembelian perorangan</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-4">
+                                    <span className="mt-1 h-3 w-3 flex-shrink-0 rounded-full bg-amber-600"></span>
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-800">Institution ({stats.distribusi.institution}%)</p>
+                                        <p className="text-xs text-gray-400">Pembelian instansi/perusahaan</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-4">
+                                    <span className="mt-1 h-3 w-3 flex-shrink-0 rounded-full bg-yellow-200"></span>
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-800">Gift ({stats.distribusi.gift}%)</p>
+                                        <p className="text-xs text-gray-400">Token hadiah donasi</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* KOLOM KANAN: Agenda Mendatang */}
+                    <div className="flex flex-col rounded-2xl border border-gray-100 bg-white p-8 shadow-sm lg:col-span-1">
+                        <h3 className="mb-6 text-lg font-bold text-gray-800">Agenda Mendatang</h3>
+
+                        {stats.agenda.length > 0 ? (
+                            <div className="relative flex-1 space-y-8 pl-4">
+                                {/* Garis Vertikal Timeline */}
+                                <div className="absolute top-2 left-0 h-full w-0.5 bg-gray-100"></div>
+
+                                {stats.agenda.map((item, index) => (
+                                    <div key={item.id} className="relative pl-6">
+                                        {/* Dot Indicator */}
+                                        <span className={`absolute top-1.5 -left-[5px] h-3 w-3 rounded-full border-2 border-white shadow-sm ${item.type === 'red' ? 'bg-red-500' : item.type === 'green' ? 'bg-green-500' : 'bg-blue-500'} `}></span>
+
+                                        <h4 className="text-sm font-bold text-gray-800">{item.title}</h4>
+                                        <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                                            <span className="font-medium">{item.date}</span>
+                                            <span>•</span>
+                                            <span>{item.time}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex flex-1 items-center justify-center text-center">
+                                <p className="text-sm text-gray-400">Tidak ada agenda dalam waktu dekat.</p>
+                            </div>
+                        )}
+
+                        <a href="/admin/agendaAdmin" className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-gray-50 py-3 text-sm font-bold text-gray-600 transition-colors hover:bg-yellow-50 hover:text-yellow-700">
+                            Lihat Semua Agenda <HiArrowSmRight className="h-4 w-4" />
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </AdminDashboardLayout>
     );
 }

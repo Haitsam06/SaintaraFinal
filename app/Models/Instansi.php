@@ -3,23 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable; // <--- PENTING: Ganti ini
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens; // <--- PENTING: Tambah ini
+use Laravel\Sanctum\HasApiTokens;
 
 class Instansi extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    // 1. Definisikan tabel
     protected $table = 'instansi';
-
-    // 2. Definisikan Primary Key (Karena bukan 'id')
     protected $primaryKey = 'id_instansi';
-    public $incrementing = false; // Karena string/char
+    public $incrementing = false;
     protected $keyType = 'string';
 
-    // 3. Field yang boleh diisi
+    protected $appends = ['id', 'name'];
+
     protected $fillable = [
         'id_instansi',
         'role_id',
@@ -32,16 +30,34 @@ class Instansi extends Authenticatable
         'bidang',
         'status_akun',
         'foto',
+        'verification_code',
+        'verification_code_expires_at',
+        'reset_password_code',
+        'reset_password_expires_at',
+        'email_verified_at',
     ];
 
-    // 4. Sembunyikan password saat return JSON
     protected $hidden = [
         'password',
     ];
 
-    // 5. Casting password agar otomatis di-hash (Laravel 10+)
     protected $casts = [
         'password' => 'hashed',
-        'tanggal_dibuat' => 'date',
+        'verification_code_expires_at' => 'datetime',
+        'reset_password_expires_at' => 'datetime',
+        'email_verified_at' => 'datetime',
     ];
+
+    // --- STANDARDISASI ATRIBUT ---
+
+    public function getIdAttribute()
+    {
+        return $this->getAttribute('id_instansi');
+    }
+
+    // Mapping 'nama_instansi' ke 'name'
+    public function getNameAttribute()
+    {
+        return $this->getAttribute('nama_instansi');
+    }
 }

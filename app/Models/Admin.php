@@ -19,9 +19,8 @@ class Admin extends Authenticatable
     const CREATED_AT = 'tanggal_dibuat';
     const UPDATED_AT = null;
 
-    // --- [PERBAIKAN 1] TAMBAHKAN 'name' DISINI ---
+    // Menambahkan atribut virtual 'name' dan 'id' ke JSON output
     protected $appends = ['id', 'name'];
-    // ---------------------------------------------
 
     protected $fillable = [
         'id_admin',
@@ -46,16 +45,16 @@ class Admin extends Authenticatable
         'password' => 'hashed',
     ];
 
-    // Helper 'id' yang sudah ada (JANGAN DIHAPUS)
+    // --- STANDARDISASI ATRIBUT ---
+
     public function getIdAttribute()
     {
-        return $this->id_admin;
+        return $this->getAttribute('id_admin');
     }
 
-    // --- [PERBAIKAN 2] BUAT PENERJEMAH 'nama_admin' JADI 'name' ---
+    // Mapping 'nama_admin' ke 'name'
     public function getNameAttribute()
     {
-        return $this->nama_admin;
+        return $this->getAttribute('nama_admin');
     }
-    // --------------------------------------------------------------
 }
