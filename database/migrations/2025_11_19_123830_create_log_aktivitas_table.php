@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('log_aktivitas', function (Blueprint $table) {
-            $table->uuid('id_log')->primary(); // Menggunakan UUID untuk PK (modern)
+            $table->string('id_log')->primary(); // UUID
 
             $table->string('customer_id')->nullable();
             $table->foreign('customer_id')->references('id_customer')->on('customers')->onDelete('set null');
@@ -22,11 +22,17 @@ return new class extends Migration
 
             $table->enum('aktivitas', ['login', 'logout', 'buat_data', 'ubah_data', 'hapus_data']);
             $table->string('keterangan')->nullable();
-            $table->dateTime('tanggal_jam');
+
+            // Koreksi: method ipAddress hanya butuh nama kolom
+            $table->ipAddress('ip_address')->nullable(); 
+            $table->string('user_agent')->nullable();
+
             $table->timestamps();
+
+            // Koreksi: Gunakan array [] untuk composite index
+            $table->index(['created_at', 'aktivitas']); 
         });
     }
-
 
     /**
      * Reverse the migrations.

@@ -2,6 +2,7 @@ import InstansiLayout from "@/layouts/dashboardLayoutInstansi";
 import React from 'react';
 import { useForm, Head } from '@inertiajs/react';
 import { HiLockClosed } from 'react-icons/hi';
+import { route } from 'ziggy-js';
 
 interface InstansiData {
     id_instansi: string;
@@ -30,7 +31,7 @@ export default function Pengaturan({ instansi }: { instansi: InstansiData }) {
 
     const submitPassword = (e: React.FormEvent) => {
         e.preventDefault();
-        putPass(route('password.update'), { // Pastikan route sesuai dengan backend Anda
+        putPass(route('Pengaturan.password'), { // Pastikan route sesuai dengan backend Anda
             onSuccess: () => resetPass(),
         });
     };

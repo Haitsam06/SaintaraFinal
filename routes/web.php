@@ -314,7 +314,7 @@ Route::middleware(['auth:instansi'])->prefix('instansi')->name('instansi.')->gro
         Route::get('/formTesInstansi', [InstansiTesController::class, 'form'])->name('form_tes');
 
         // Logic Upload & Token Tes
-        Route::post('/upload-peserta', [InstansiTesController::class, 'uploadExcel'])->name('uploadPeserta');
+        Route::post('/uploadPeserta', [InstansiTesController::class, 'uploadExcel'])->name('uploadPeserta');
         Route::get('/downloadFormTemplate', [InstansiTesController::class, 'downloadFormTemplate'])->name('downloadFormTemplate');
         Route::post('/checkTokenInstansi', [InstansiTesController::class, 'checkToken'])->name('checkTokenTesInstansi');
 
