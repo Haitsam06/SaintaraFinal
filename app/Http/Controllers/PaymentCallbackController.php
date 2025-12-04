@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 
 use App\Models\Pembayaran;
 use App\Models\Token;
+use App\Models\Instansi; // <--- [PENTING] Jangan lupa import model ini
 
 use Midtrans\Config;
 use Midtrans\Notification;
@@ -35,13 +36,11 @@ class PaymentCallbackController extends Controller
         try {
             $notif = new Notification();
         } catch (\Throwable $e) {
-            // Biasanya terjadi saat "Test notification URL"
             Log::warning('Midtrans notification parse failed', [
                 'error'   => $e->getMessage(),
                 'payload' => $request->all(),
             ]);
 
-            // Jangan balas 400 ke Midtrans, cukup acknowledge
             return response()->json([
                 'message' => 'OK (invalid notification ignored)'
             ], 200);
@@ -68,11 +67,7 @@ class PaymentCallbackController extends Controller
             Log::warning('Midtrans callback: order not found in DB', [
                 'order_id' => $orderId,
             ]);
-
-            // Untuk keamanan, balas 200 supaya Midtrans tidak retry terus
-            return response()->json([
-                'message' => 'OK (order not found, ignored)',
-            ], 200);
+            return response()->json(['message' => 'OK (order not found, ignored)'], 200);
         }
 
         // Idempotency: kalau sudah berhasil, jangan proses lagi
@@ -80,10 +75,7 @@ class PaymentCallbackController extends Controller
             Log::info('Midtrans callback: order already paid, skip', [
                 'order_id' => $orderId,
             ]);
-
-            return response()->json([
-                'message' => 'OK (already paid)',
-            ], 200);
+            return response()->json(['message' => 'OK (already paid)'], 200);
         }
 
         // ---------------------------------------------------
@@ -107,20 +99,16 @@ class PaymentCallbackController extends Controller
             $statusPembayaran = 'gagal';
         }
 
-        // Safety: kalau status tidak teridentifikasi, log & ignore
         if ($statusPembayaran === null) {
             Log::warning('Midtrans callback: unknown transaction status', [
                 'order_id'          => $orderId,
                 'transactionStatus' => $transactionStatus,
             ]);
-
-            return response()->json([
-                'message' => 'OK (unknown status, ignored)',
-            ], 200);
+            return response()->json(['message' => 'OK (unknown status, ignored)'], 200);
         }
 
         // ---------------------------------------------------
-        // 5. Update status & Generate Token (kalau berhasil)
+        // 5. Update status & Proses (Aktivasi / Token)
         // ---------------------------------------------------
         DB::beginTransaction();
 
@@ -136,12 +124,41 @@ class PaymentCallbackController extends Controller
                 'status_pembayaran' => $statusPembayaran,
             ]);
 
-            // ===== LOGIC GENERATE TOKEN (UNIVERSAL) =====
+            // HANYA JIKA PEMBAYARAN SUKSES/SETTLEMENT
             if ($statusPembayaran === 'berhasil') {
+
+                // ============================================================
+                // A. LOGIC AKTIVASI AKUN INSTANSI (Kode Baru)
+                // ============================================================
+                // Cek apakah transaksi ini milik instansi
+                if ($pembayaran->instansi_id) {
+                    $instansi = Instansi::find($pembayaran->instansi_id);
+                    
+                    // Jika instansi ditemukan DAN statusnya masih 'pending_payment'
+                    if ($instansi && $instansi->status_akun === 'pending') {
+                        $instansi->update([
+                            'status_akun' => 'aktif'
+                        ]);
+                        
+                        Log::info('Midtrans callback: Akun Instansi berhasil diaktifkan', [
+                            'instansi_id' => $instansi->id_instansi,
+                            'order_id'    => $orderId
+                        ]);
+                    }
+                }
+                // ============================================================
+
+
+                // ============================================================
+                // B. LOGIC GENERATE TOKEN (Kode Lama - Tetap Aman)
+                // ============================================================
+                // Jika ini transaksi Aktivasi, biasanya jumlah_token = 0, 
+                // jadi loop ini tidak akan jalan (Aman).
+                // Jika ini transaksi Top Up, loop ini akan jalan.
+                
                 $jumlahToken = (int) $pembayaran->jumlah_token;
 
                 for ($i = 0; $i < $jumlahToken; $i++) {
-
                     // Prefix: pakai paket_id
                     $prefix  = $pembayaran->paket_id;
                     $tanggal = now()->format('Ymd');
@@ -157,20 +174,19 @@ class PaymentCallbackController extends Controller
                         'id_token'      => $kodeToken,
                         'pembayaran_id' => $pembayaran->id_transaksi,
                         'paket_id'      => $pembayaran->paket_id,
-
-                        // Jika yang beli Instansi, customer_id biasanya null (dan sebaliknya)
                         'customer_id'   => $pembayaran->customer_id,
                         'instansi_id'   => $pembayaran->instansi_id,
-
                         'status'        => 'belum digunakan',
                         'tglPemakaian'  => null,
                     ]);
                 }
 
-                Log::info('Midtrans callback: tokens generated', [
-                    'order_id'      => $orderId,
-                    'jumlah_token'  => $jumlahToken,
-                ]);
+                if ($jumlahToken > 0) {
+                    Log::info('Midtrans callback: tokens generated', [
+                        'order_id'     => $orderId,
+                        'jumlah_token' => $jumlahToken,
+                    ]);
+                }
             }
 
             DB::commit();
@@ -188,7 +204,6 @@ class PaymentCallbackController extends Controller
                 'trace'    => $e->getTraceAsString(),
             ]);
 
-            // Untuk Midtrans tetap 200, tapi error tercatat di log
             return response()->json([
                 'message' => 'OK (internal error logged)',
             ], 200);

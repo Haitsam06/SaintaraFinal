@@ -63,7 +63,7 @@ class AuthController extends Controller
                 'password'      => $request->password, // auto hash via casts
                 'no_telp'       => $request->no_telp,
                 'alamat'        => $request->alamat ?? null,
-                'status_akun'   => 'aktif',
+                'status_akun'   => 'pending',
             ]);
         }
 

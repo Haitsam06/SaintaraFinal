@@ -31,7 +31,7 @@ return new class extends Migration {
             // ==========================================================
             // 2. DETAIL ITEM
             // ==========================================================
-            $table->string('paket_id'); 
+            $table->string('paket_id')->nullable();
             $table->foreign('paket_id')->references('id_paket')->on('pakets')->onDelete('restrict');
 
             $table->integer('jumlah_token')->default(1); // Jumlah token yang dibeli

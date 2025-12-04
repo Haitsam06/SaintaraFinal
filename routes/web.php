@@ -38,6 +38,7 @@ use App\Http\Controllers\Admin\TokenAdminController;
 use App\Http\Controllers\Admin\ReviewAdminController;
 
 // 3. Instansi Controllers
+use App\Http\Controllers\Instansi\ActivationController;
 use App\Http\Controllers\Instansi\InstansiProfileController;
 use App\Http\Controllers\Instansi\SettingInstansiController;
 use App\Http\Controllers\Instansi\InstansiTesController;
@@ -272,54 +273,71 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
 
 // =========================================================================
 // GROUP INSTANSI
-// Middleware: auth:instansi
+// Middleware Dasar: auth:instansi
+// Prefix URL: /instansi/...
+// Name Prefix: instansi.
 // =========================================================================
 Route::middleware(['auth:instansi'])->prefix('instansi')->name('instansi.')->group(function () {
 
-    // --- DASHBOARD ---
-    Route::get('/dashboardInstansi', [DashboardInstansiController::class, 'index'])
-        ->name('dashboard');
+    // =====================================================================
+    // 1. ZONA AKTIVASI (Tidak diproteksi 'instansi.active')
+    // =====================================================================
+    // User yang statusnya 'pending_payment' HANYA bisa akses ini.
+    
+    Route::get('/activation', [ActivationController::class, 'show'])
+        ->name('activation'); 
 
-    // --- PROFIL ---
-    Route::get('/profilInstansi', [InstansiProfileController::class, 'edit'])->name('profil');
-    Route::post('/profilInstansi', [InstansiProfileController::class, 'update'])->name('profil.update');
+    // =====================================================================
+    // 2. ZONA FITUR UTAMA (Diproteksi 'instansi.active')
+    // =====================================================================
+    // User harus status 'aktif' untuk mengakses route di dalam grup ini.
+    // Jika belum aktif, middleware akan menendang balik ke /activation.
+    
+    Route::middleware(['instansi.active'])->group(function () {
 
-    // --- FITUR UTAMA ---
-    Route::get('/tesInstansi', [InstansiTesController::class, 'index'])->name('daftar_tes');
+        // --- DASHBOARD ---
+        Route::get('/dashboardInstansi', [DashboardInstansiController::class, 'index'])
+            ->name('dashboard');
 
-    Route::get('/formTesInstansi', [InstansiTesController::class, 'form'])->name('form_tes');
+        // --- PROFIL ---
+        Route::get('/profilInstansi', [InstansiProfileController::class, 'edit'])->name('profil');
+        Route::post('/profilInstansi', [InstansiProfileController::class, 'update'])->name('profil.update');
 
-    // Proses upload peserta (Excel + input manual)
-    Route::post('/uploadPeserta', [InstansiTesController::class, 'uploadExcel'])->name('uploadPeserta');
+        // --- MANAJEMEN TES ---
+        Route::get('/tesInstansi', [InstansiTesController::class, 'index'])->name('daftar_tes');
+        Route::get('/formTesInstansi', [InstansiTesController::class, 'form'])->name('form_tes');
+        
+        // Logic Upload & Token Tes
+        Route::post('/upload-peserta', [InstansiTesController::class, 'uploadExcel'])->name('uploadPeserta');
+        Route::get('/downloadFormTemplate', [InstansiTesController::class, 'downloadFormTemplate'])->name('downloadFormTemplate');
+        Route::post('/checkTokenInstansi', [InstansiTesController::class, 'checkToken'])->name('checkTokenTesInstansi');
 
-    // Download template form peserta instansi
-    Route::get('/downloadFormTemplate', [InstansiTesController::class, 'downloadFormTemplate'])->name('downloadFormTemplate');
+        // --- TRANSAKSI & DOMPET (TOP UP) ---
+        // Transaksi di sini adalah untuk beli token tambahan (Top Up), bukan aktivasi.
+        Route::get('/transaksiInstansi', [TransaksiInstansiController::class, 'index'])->name('transaksi');
+        Route::post('/transaksi/checkout', [TransaksiInstansiController::class, 'checkout'])->name('transaksi.checkout');
 
-    // Cek token sebelum submit
-    Route::post('/checkTokenTesInstansi', [InstansiTesController::class, 'checkToken'])
-        ->name('checkTokenTesInstansi');
+        // --- HASIL & LAPORAN ---
+        Route::get('/hasilInstansi', function () {
+            return Inertia::render('Instansi/Hasil');
+        })->name('hasil');
 
-    // --- TRANSAKSI & TOKEN INSTANSI ---
-    Route::get('/transaksiInstansi', [TransaksiInstansiController::class, 'index'])->name('transaksi');
-    Route::post('/transaksi/checkout', [TransaksiInstansiController::class, 'checkout'])->name('transaksi.checkout');
+        // --- PUSAT BANTUAN ---
+        Route::get('/bantuanInstansi', [BantuanInstansiController::class, 'index'])->name('bantuan');
+        Route::post('/bantuanInstansi', [BantuanInstansiController::class, 'store'])->name('bantuan.store');
 
-    // --- HASIL TES ---
-    Route::get('/hasilInstansi', function () {
-        return Inertia::render('Instansi/Hasil');
-    })->name('hasil');
+        Route::get('/artikelInstansi', function () {
+            return Inertia::render('Instansi/Artikel');
+        })->name('artikel');
 
-    Route::get('/bantuanInstansi', [BantuanInstansiController::class, 'index'])->name('bantuan');
-    Route::post('/bantuanInstansi', [BantuanInstansiController::class, 'store'])->name('bantuan.store');
+        // --- PENGATURAN AKUN ---
+        Route::get('/settingInstansi', [SettingInstansiController::class, 'index'])->name('Pengaturan.index');
+        Route::put('/settingInstansi/password', [SettingInstansiController::class, 'updatePassword'])->name('Pengaturan.password');
+        Route::delete('/settingInstansi', [SettingInstansiController::class, 'destroy'])->name('Pengaturan.destroy');
 
-    Route::get('/artikelInstansi', function () {
-        return Inertia::render('Instansi/Artikel');
-    })->name('artikel');
+    }); // End of instansi.active middleware
 
-    // --- PENGATURAN AKUN (SETTINGS) ---
-    Route::get('/settingInstansi', [SettingInstansiController::class, 'index'])->name('Pengaturan.index');
-    Route::put('/settingInstansi/password', [SettingInstansiController::class, 'updatePassword'])->name('Pengaturan.password');
-    Route::delete('/settingInstansi', [SettingInstansiController::class, 'destroy'])->name('Pengaturan.destroy');
-});
+}); // End of auth:instansi group
 
 /*
 |--------------------------------------------------------------------------

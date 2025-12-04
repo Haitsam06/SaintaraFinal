@@ -8,6 +8,7 @@ use App\Models\Instansi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Auth; // <-- Jangan lupa import Auth
 use Inertia\Inertia;
 
 class VerifyOtpController extends Controller
@@ -15,9 +16,9 @@ class VerifyOtpController extends Controller
     // Tampilkan halaman form OTP
     public function showForm(Request $request)
     {
-        return Inertia::render('auth/VerifyOtp', [ // <- sesuaikan dengan folder resources/js/pages/auth
+        return Inertia::render('auth/VerifyOtp', [
             'status' => session('status'),
-            'email'  => $request->query('email'),   // <- ambil email dari query string (?email=...)
+            'email'  => $request->query('email'),
         ]);
     }
 
@@ -29,21 +30,23 @@ class VerifyOtpController extends Controller
             'otp'   => ['required', 'digits:6'],
         ]);
 
-        // Cari akun di customers dulu
+        // 1. Tentukan Guard dan Cari Akun
         $account = Customer::where('email', $data['email'])->first();
+        $guard = 'customer';
 
-        // Kalau tidak ketemu, coba di instansi
         if (! $account) {
             $account = Instansi::where('email', $data['email'])->first();
+            $guard = 'instansi';
         }
 
+        // Jika akun tidak ditemukan di kedua tabel
         if (! $account) {
             return back()->withErrors([
                 'email' => 'Akun dengan email tersebut tidak ditemukan.',
             ]);
         }
 
-        // Cek kode & expired
+        // 2. Cek Validasi Kode OTP
         if (
             ! $account->verification_code ||
             $account->verification_code !== $data['otp'] ||
@@ -55,19 +58,34 @@ class VerifyOtpController extends Controller
             ]);
         }
 
-        // OTP valid → tandai terverifikasi
+        // 3. Update Data Akun (Verifikasi Berhasil)
         $account->email_verified_at = Carbon::now();
         $account->verification_code = null;
         $account->verification_code_expires_at = null;
-        // kalau mau, pastikan status akun aktif
-        if (property_exists($account, 'status_akun')) {
+
+        // LOGIKA STATUS:
+        // Jika Customer -> Langsung Aktif
+        if ($guard === 'customer') {
             $account->status_akun = 'aktif';
-        }
+        } 
+        // Jika Instansi -> JANGAN ubah status jadi 'aktif' dulu.
+        // Biarkan statusnya tetap 'pending_payment' (sesuai create di AuthController)
+
         $account->save();
 
-        return redirect()
-            ->route('login')
-            ->with('success', 'Email berhasil diverifikasi. Silakan login.');
+        // 4. Auto Login User
+        Auth::guard($guard)->login($account);
+        $request->session()->regenerate();
+
+        // 5. Redirect Berdasarkan Tipe Akun
+        if ($guard === 'instansi') {
+            // Arahkan Instansi ke halaman pembayaran
+            // Pastikan route 'payment.checkout' sudah dibuat
+            return redirect()->route('instansi.activation');
+        }
+
+        // Arahkan Customer ke dashboard
+        return redirect()->route('personal.dashboard');
     }
 
     // Kirim ulang OTP
