@@ -1,7 +1,7 @@
 import AdminLayout from '@/layouts/dashboardLayoutAdmin';
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { FormEvent, ReactNode, useState } from 'react';
-import { HiCurrencyDollar, HiPencil, HiPlus, HiSearch, HiTrash, HiX } from 'react-icons/hi';
+import { HiCurrencyDollar, HiPencil, HiPlus, HiSearch, HiTag, HiTrash, HiX } from 'react-icons/hi'; // Tambah HiTag
 
 // --- TYPES ---
 interface KeuanganData {
@@ -10,11 +10,13 @@ interface KeuanganData {
     deskripsi: string;
     jumlah: number;
     tipe: string;
+    kategori?: string; // Tambahkan properti kategori (opsional karena data lama mungkin null)
 }
 
 interface Props {
     transaksi: { data: KeuanganData[]; links: any[] };
     totalPengeluaran: number;
+    filters?: { search?: string };
 }
 
 // --- KOMPONEN MODAL ---
@@ -35,10 +37,11 @@ const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose:
     );
 };
 
-export default function Pengeluaran({ transaksi, totalPengeluaran }: Props) {
+export default function Pengeluaran({ transaksi, totalPengeluaran, filters }: Props) {
     const { url } = usePage();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [searchTerm, setSearchTerm] = useState(filters?.search || '');
 
     const {
         data,
@@ -55,15 +58,22 @@ export default function Pengeluaran({ transaksi, totalPengeluaran }: Props) {
         deskripsi: '',
         tanggal_transaksi: new Date().toISOString().split('T')[0],
         tipe: 'pengeluaran',
+        kategori: 'umum', // Default kategori untuk input manual
     });
 
     const formatRupiah = (angka: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
 
     // --- HANDLERS ---
+    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setSearchTerm(value);
+        router.get('/admin/keuangan/pengeluaran', { search: value }, { preserveState: true, replace: true, preserveScroll: true });
+    };
+
     const openAddModal = () => {
         setIsEditMode(false);
         reset();
-        setData('tipe', 'pengeluaran');
+        setData((prev) => ({ ...prev, tipe: 'pengeluaran', kategori: 'umum' }));
         setIsModalOpen(true);
     };
 
@@ -75,6 +85,7 @@ export default function Pengeluaran({ transaksi, totalPengeluaran }: Props) {
             deskripsi: item.deskripsi,
             tanggal_transaksi: item.tanggal_transaksi,
             tipe: 'pengeluaran',
+            kategori: item.kategori || 'umum',
         });
         setIsModalOpen(true);
     };
@@ -137,13 +148,13 @@ export default function Pengeluaran({ transaksi, totalPengeluaran }: Props) {
                 <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                     <div>
                         <h1 className="text-xl font-bold text-gray-800">Riwayat Pengeluaran</h1>
-                        <p className="text-sm text-gray-500">Daftar semua transaksi uang keluar.</p>
+                        <p className="text-sm text-gray-500">Daftar semua transaksi uang keluar (Umum & Gaji).</p>
                     </div>
 
                     <div className="flex flex-col gap-3 md:flex-row md:items-center">
                         {/* Search Bar */}
                         <div className="relative w-full md:w-64">
-                            <input type="text" placeholder="Cari transaksi..." className="w-full rounded-full border-none bg-white py-2.5 pr-10 pl-4 text-sm text-gray-600 shadow-sm ring-1 ring-gray-200 focus:ring-2 focus:ring-yellow-400" />
+                            <input type="text" placeholder="Cari transaksi..." value={searchTerm} onChange={handleSearch} className="w-full rounded-full border-none bg-white py-2.5 pr-10 pl-4 text-sm text-gray-600 shadow-sm ring-1 ring-gray-200 focus:ring-2 focus:ring-yellow-400" />
                             <div className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400">
                                 <HiSearch className="h-5 w-5" />
                             </div>
@@ -164,6 +175,7 @@ export default function Pengeluaran({ transaksi, totalPengeluaran }: Props) {
                             <thead className="bg-gray-50 text-gray-900">
                                 <tr>
                                     <th className="px-6 py-4 font-bold">Tanggal</th>
+                                    <th className="px-6 py-4 font-bold">Kategori</th>
                                     <th className="px-6 py-4 font-bold">Keterangan</th>
                                     <th className="px-6 py-4 font-bold">Jumlah</th>
                                     <th className="px-6 py-4 text-center font-bold">Aksi</th>
@@ -173,14 +185,40 @@ export default function Pengeluaran({ transaksi, totalPengeluaran }: Props) {
                                 {transaksi.data.length > 0 ? (
                                     transaksi.data.map((item, idx) => (
                                         <tr key={idx} className="transition-colors hover:bg-red-50/30">
+                                            {/* Tanggal */}
                                             <td className="px-6 py-4">{new Date(item.tanggal_transaksi).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
+
+                                            {/* Kategori Badge */}
+                                            <td className="px-6 py-4">
+                                                {item.kategori === 'gaji' ? (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold tracking-wide text-purple-700 uppercase">
+                                                        <HiTag className="h-3 w-3" /> Gaji
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-bold tracking-wide text-gray-600 uppercase">Umum</span>
+                                                )}
+                                            </td>
+
+                                            {/* Deskripsi */}
                                             <td className="px-6 py-4 font-medium text-gray-800">{item.deskripsi}</td>
+
+                                            {/* Jumlah */}
                                             <td className="px-6 py-4 font-bold text-red-600">{formatRupiah(item.jumlah)}</td>
+
+                                            {/* Aksi */}
                                             <td className="px-6 py-4 text-center">
                                                 <div className="flex justify-center gap-2">
-                                                    <button onClick={() => openEditModal(item)} className="rounded-lg bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100 hover:text-blue-700" title="Edit">
-                                                        <HiPencil className="h-5 w-5" />
-                                                    </button>
+                                                    {/* Logika Tombol Edit: Jika Gaji, arahkan ke halaman Gaji. Jika Umum, buka Modal */}
+                                                    {item.kategori === 'gaji' ? (
+                                                        <Link href="/admin/keuangan/gaji" className="rounded-lg bg-gray-100 p-2 text-gray-500 transition hover:bg-gray-200 hover:text-gray-700" title="Detail Gaji (Pindah Halaman)">
+                                                            <HiPencil className="h-5 w-5" />
+                                                        </Link>
+                                                    ) : (
+                                                        <button onClick={() => openEditModal(item)} className="rounded-lg bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100 hover:text-blue-700" title="Edit">
+                                                            <HiPencil className="h-5 w-5" />
+                                                        </button>
+                                                    )}
+
                                                     <button onClick={() => handleDelete(item.id_keuangan)} className="rounded-lg bg-red-50 p-2 text-red-600 transition hover:bg-red-100 hover:text-red-700" title="Hapus">
                                                         <HiTrash className="h-5 w-5" />
                                                     </button>
@@ -190,7 +228,7 @@ export default function Pengeluaran({ transaksi, totalPengeluaran }: Props) {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={4} className="py-12 text-center text-gray-400">
+                                        <td colSpan={5} className="py-12 text-center text-gray-400">
                                             <div className="flex flex-col items-center justify-center gap-2">
                                                 <HiCurrencyDollar className="h-10 w-10 opacity-20" />
                                                 <p>Belum ada data pengeluaran.</p>
@@ -203,7 +241,7 @@ export default function Pengeluaran({ transaksi, totalPengeluaran }: Props) {
                     </div>
                 </div>
 
-                {/* === MODAL FORM === */}
+                {/* === MODAL FORM (Hanya untuk Pengeluaran Umum) === */}
                 <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={isEditMode ? 'Edit Pengeluaran' : 'Tambah Pengeluaran'}>
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Jumlah */}
@@ -226,8 +264,8 @@ export default function Pengeluaran({ transaksi, totalPengeluaran }: Props) {
 
                         {/* Keterangan */}
                         <div>
-                            <label className={labelClass}>Keterangan / Sumber Dana</label>
-                            <textarea value={data.deskripsi} onChange={(e) => setData('deskripsi', e.target.value)} className={`${inputClass} min-h-[100px]`} placeholder="Contoh: Beli ATK, Bayar Listrik" required />
+                            <label className={labelClass}>Keterangan / Keperluan</label>
+                            <textarea value={data.deskripsi} onChange={(e) => setData('deskripsi', e.target.value)} className={`${inputClass} min-h-[100px]`} placeholder="Contoh: Beli ATK, Bayar Listrik, Service AC" required />
                         </div>
 
                         {/* Tombol Aksi */}

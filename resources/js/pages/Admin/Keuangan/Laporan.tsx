@@ -1,15 +1,15 @@
 import AdminLayout from '@/layouts/dashboardLayoutAdmin';
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { HiDocumentText, HiPrinter, HiRefresh, HiSearch } from 'react-icons/hi';
 
-// --- TYPES (Disesuaikan dengan KeuanganAdminController Anda) ---
+// --- TYPES ---
 interface KeuanganItem {
-    id_keuangan: string;
+    id_keuangan: string; // atau 'id' jika dari union query
     tanggal_transaksi: string;
     tipe: 'pemasukan' | 'pengeluaran';
     deskripsi: string;
-    jumlah: number; // Ini yang ada di controller, bukan 'total'
+    jumlah: number;
 }
 
 interface Props {
@@ -38,11 +38,11 @@ export default function Laporan({ laporan, summary, filters }: Props) {
         }).format(angka);
     };
 
-    // Format Tanggal (Safe Check agar tidak Invalid Date)
+    // Format Tanggal
     const formatDate = (dateString: string) => {
         if (!dateString) return '-';
         const date = new Date(dateString);
-        if (isNaN(date.getTime())) return '-'; // Cek validitas date
+        if (isNaN(date.getTime())) return '-';
         return date.toLocaleDateString('id-ID', {
             day: '2-digit',
             month: 'long',
@@ -57,7 +57,6 @@ export default function Laporan({ laporan, summary, filters }: Props) {
         const currentDate = new Date(laporan[currentIndex].tanggal_transaksi);
         const prevDate = new Date(laporan[currentIndex - 1].tanggal_transaksi);
 
-        // Validasi jika tanggal invalid
         if (isNaN(currentDate.getTime()) || isNaN(prevDate.getTime())) return false;
 
         const currentMonthYear = `${currentDate.getMonth()}-${currentDate.getFullYear()}`;
@@ -173,12 +172,11 @@ export default function Laporan({ laporan, summary, filters }: Props) {
                 <div id="printable-area">
                     <div className="mb-6 hidden text-center print:block">
                         <h2 className="text-xl font-bold text-gray-900 uppercase">LAPORAN KEUANGAN TAHUN {year}</h2>
-                        <p className="text-sm text-gray-600">Haniya Baterai • Dicetak pada: {new Date().toLocaleDateString('id-ID')}</p>
+                        <p className="text-sm text-gray-600">Dicetak pada: {new Date().toLocaleDateString('id-ID')}</p>
                     </div>
 
                     <div className="w-full border border-gray-200 bg-white print:border-none">
                         <table className="w-full text-left text-sm">
-                            {/* HEADER KUNING SOLID */}
                             <thead>
                                 <tr className="text-gray-900" style={{ backgroundColor: '#FFC107', color: 'black', printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}>
                                     <th className="border-none px-4 py-3 text-xs font-bold tracking-wider uppercase">No</th>
@@ -191,7 +189,7 @@ export default function Laporan({ laporan, summary, filters }: Props) {
                             <tbody className="divide-y divide-gray-100 bg-white">
                                 {laporan.length > 0 ? (
                                     laporan.map((item, index) => (
-                                        <片 key={index}>
+                                        <Fragment key={index}>
                                             {/* GROUP HEADER (BULAN) */}
                                             {shouldShowGroupHeader(index) && (
                                                 <tr className="bg-gray-100 print:bg-gray-100">
@@ -204,21 +202,17 @@ export default function Laporan({ laporan, summary, filters }: Props) {
                                             {/* BARIS DATA */}
                                             <tr>
                                                 <td className="px-4 py-3 font-medium text-gray-500">{index + 1}</td>
-
                                                 <td className="px-4 py-3 text-sm font-bold text-gray-800">{formatDate(item.tanggal_transaksi)}</td>
-
                                                 <td className="px-4 py-3 text-center">
                                                     <span className={`inline-block rounded-full border px-3 py-1 text-[10px] font-bold tracking-wide uppercase ${item.tipe === 'pemasukan' ? 'border-green-200 bg-green-100 text-green-700' : 'border-red-200 bg-red-100 text-red-700'}`}>{item.tipe === 'pemasukan' ? 'MASUK' : 'KELUAR'}</span>
                                                 </td>
-
                                                 <td className="px-4 py-3 text-sm text-gray-600">{item.deskripsi}</td>
-
                                                 <td className={`px-4 py-3 text-right text-sm font-bold ${item.tipe === 'pemasukan' ? 'text-green-600' : 'text-red-600'}`}>
                                                     {item.tipe === 'pemasukan' ? '+ ' : '- '}
                                                     {formatRupiah(item.jumlah)}
                                                 </td>
                                             </tr>
-                                        </片>
+                                        </Fragment>
                                     ))
                                 ) : (
                                     <tr>
@@ -232,7 +226,6 @@ export default function Laporan({ laporan, summary, filters }: Props) {
                                 )}
                             </tbody>
 
-                            {/* FOOTER TOTAL */}
                             {laporan.length > 0 && (
                                 <tfoot>
                                     <tr className="border-t-2 border-gray-300 bg-gray-50">
@@ -249,9 +242,4 @@ export default function Laporan({ laporan, summary, filters }: Props) {
             </div>
         </AdminLayout>
     );
-}
-
-// Helper Fragment
-function 片(props: any) {
-    return <>{props.children}</>;
 }

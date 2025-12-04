@@ -4,55 +4,140 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Keuangan;
-use App\Models\Admin; // Pastikan model Admin di-import
+use App\Models\Pembayaran;
+use App\Models\Admin;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class KeuanganAdminController extends Controller
 {
-    public function indexPemasukan()
+    // =================================================================
+    // 1. HALAMAN PEMASUKAN
+    // =================================================================
+    public function indexPemasukan(Request $request)
     {
-        $transaksi = Keuangan::where('tipe', 'pemasukan')
-            ->latest('tanggal_transaksi')
-            ->paginate(10);
+        $search = $request->input('search');
 
-        $totalPemasukan = Keuangan::where('tipe', 'pemasukan')->sum('jumlah');
-        $countBulanIni = Keuangan::where('tipe', 'pemasukan')
-            ->whereMonth('tanggal_transaksi', now()->month)
-            ->count();
+        // Query Manual
+        $queryManual = DB::table('keuangans')
+            ->select([
+                'id_keuangan as id',
+                'tanggal_transaksi',
+                'deskripsi',
+                'jumlah',
+                DB::raw("'manual' as sumber_data")
+            ])
+            ->where('tipe', 'pemasukan');
+
+        if ($search) {
+            $queryManual->where(function ($q) use ($search) {
+                $q->where('deskripsi', 'like', "%{$search}%")
+                    ->orWhere('jumlah', 'like', "%{$search}%");
+            });
+        }
+
+        // Query Otomatis (Pembayaran)
+        $queryOtomatis = DB::table('pembayarans')
+            ->select([
+                'id_transaksi as id',
+                DB::raw("DATE(waktu_dibayar) as tanggal_transaksi"),
+                DB::raw("CONCAT('Pembayaran Sistem #', id_transaksi) as deskripsi"),
+                'jumlah_bayar as jumlah',
+                DB::raw("'otomatis' as sumber_data")
+            ])
+            ->where('status_pembayaran', 'berhasil');
+
+        if ($search) {
+            $queryOtomatis->where(function ($q) use ($search) {
+                $q->where('id_transaksi', 'like', "%{$search}%")
+                    ->orWhere('jumlah_bayar', 'like', "%{$search}%");
+            });
+        }
+
+        $transaksi = $queryManual->union($queryOtomatis)
+            ->orderBy('tanggal_transaksi', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+
+        // Hitung Statistik
+        $totalPemasukan = Keuangan::where('tipe', 'pemasukan')->sum('jumlah') +
+            Pembayaran::where('status_pembayaran', 'berhasil')->sum('jumlah_bayar');
+
+        $countBulanIni = Keuangan::where('tipe', 'pemasukan')->whereMonth('tanggal_transaksi', Carbon::now()->month)->count() +
+            Pembayaran::where('status_pembayaran', 'berhasil')->whereMonth('waktu_dibayar', Carbon::now()->month)->count();
 
         return Inertia::render('Admin/Keuangan/Pemasukan', [
             'transaksi' => $transaksi,
             'totalPemasukan' => $totalPemasukan,
-            'countBulanIni' => $countBulanIni
+            'countBulanIni' => $countBulanIni,
+            'filters' => $request->only(['search']),
         ]);
     }
 
-    public function indexPengeluaran()
+    // =================================================================
+    // 2. HALAMAN PENGELUARAN (UMUM + GAJI)
+    // =================================================================
+    public function indexPengeluaran(Request $request)
     {
-        $transaksi = Keuangan::where('tipe', 'pengeluaran')
-            ->latest('tanggal_transaksi')
-            ->paginate(10);
+        $search = $request->input('search');
+
+        // REMOVED: ->where('kategori', '!=', 'gaji') 
+        // Now it fetches ALL transactions with type 'pengeluaran'
+        $query = Keuangan::where('tipe', 'pengeluaran');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('deskripsi', 'like', "%{$search}%")
+                    ->orWhere('jumlah', 'like', "%{$search}%");
+            });
+        }
+
+        $transaksi = $query->orderBy('tanggal_transaksi', 'desc')
+            ->paginate(10)
+            ->withQueryString();
 
         $totalPengeluaran = Keuangan::where('tipe', 'pengeluaran')->sum('jumlah');
 
         return Inertia::render('Admin/Keuangan/Pengeluaran', [
             'transaksi' => $transaksi,
-            'totalPengeluaran' => $totalPengeluaran
+            'totalPengeluaran' => $totalPengeluaran,
+            'filters' => $request->only(['search']),
         ]);
     }
-
+    // =================================================================
+    // 3. HALAMAN LAPORAN
+    // =================================================================
     public function indexLaporan(Request $request)
     {
-        $year = $request->input('year', now()->year);
-        $query = Keuangan::whereYear('tanggal_transaksi', $year);
+        $year = $request->input('year', Carbon::now()->year);
 
-        $totalPemasukan = (clone $query)->where('tipe', 'pemasukan')->sum('jumlah');
-        $totalPengeluaran = (clone $query)->where('tipe', 'pengeluaran')->sum('jumlah');
+        // Data Manual (Pemasukan & Pengeluaran termasuk Gaji)
+        $manual = DB::table('keuangans')
+            ->select(['id_keuangan', 'tanggal_transaksi', 'tipe', 'deskripsi', 'jumlah'])
+            ->whereYear('tanggal_transaksi', $year)
+            ->whereIn('tipe', ['pemasukan', 'pengeluaran']);
+
+        // Data Otomatis (Pembayaran)
+        $otomatis = DB::table('pembayarans')
+            ->select([
+                'id_transaksi as id_keuangan',
+                DB::raw("DATE(waktu_dibayar) as tanggal_transaksi"),
+                DB::raw("'pemasukan' as tipe"),
+                DB::raw("CONCAT('Pembayaran Sistem #', id_transaksi) as deskripsi"),
+                'jumlah_bayar as jumlah'
+            ])
+            ->where('status_pembayaran', 'berhasil')
+            ->whereYear('waktu_dibayar', $year);
+
+        $laporan = $manual->union($otomatis)
+            ->orderBy('tanggal_transaksi', 'asc')
+            ->get();
+
+        $totalPemasukan = $laporan->where('tipe', 'pemasukan')->sum('jumlah');
+        $totalPengeluaran = $laporan->where('tipe', 'pengeluaran')->sum('jumlah'); // Ini sudah otomatis include gaji
         $saldo = $totalPemasukan - $totalPengeluaran;
-
-        $laporan = $query->orderBy('tanggal_transaksi', 'desc')->get();
 
         return Inertia::render('Admin/Keuangan/Laporan', [
             'laporan' => $laporan,
@@ -65,49 +150,34 @@ class KeuanganAdminController extends Controller
         ]);
     }
 
-    public function printLaporan(Request $request)
+    // =================================================================
+    // 4. HALAMAN GAJI (Logika: Tipe=Pengeluaran, Kategori=Gaji)
+    // =================================================================
+    public function indexGaji(Request $request)
     {
-        $year = $request->input('year', now()->year);
-        $query = Keuangan::whereYear('tanggal_transaksi', $year);
+        $search = $request->input('search');
 
-        $totalPemasukan = (clone $query)->where('tipe', 'pemasukan')->sum('jumlah');
-        $totalPengeluaran = (clone $query)->where('tipe', 'pengeluaran')->sum('jumlah');
-        $saldo = $totalPemasukan - $totalPengeluaran;
+        // Filter khusus: tipe 'pengeluaran' DAN kategori 'gaji'
+        $query = Keuangan::with('admin')
+            ->where('tipe', 'pengeluaran')
+            ->where('kategori', 'gaji');
 
-        $laporan = $query->orderBy('tanggal_transaksi', 'asc')->get();
+        if ($search) {
+            $query->whereHas('admin', function ($q) use ($search) {
+                $q->where('nama_admin', 'like', "%{$search}%");
+            });
+        }
 
-        return Inertia::render('Admin/Keuangan/CetakLaporan', [
-            'laporan' => $laporan,
-            'summary' => [
-                'total_pemasukan' => $totalPemasukan,
-                'total_pengeluaran' => $totalPengeluaran,
-                'saldo' => $saldo
-            ],
-            'year' => $year,
-            'company_name' => 'SAINTARA'
-        ]);
-    }
+        $gaji = $query->orderBy('tanggal_transaksi', 'desc')
+            ->paginate(10)
+            ->withQueryString();
 
-    // ==========================================
-    //  FITUR GAJI (INI YANG SEBELUMNYA HILANG)
-    // ==========================================
-
-    public function indexGaji()
-    {
-        // Filter Keuangan yang kategorinya 'gaji'
-        $gaji = Keuangan::where('kategori', 'gaji')
-            ->with('admin') // Load data karyawan
-            ->latest('tanggal_transaksi')
-            ->paginate(10);
-
-        // Ambil list karyawan (role_id = 2) untuk dropdown
-        $karyawan = Admin::where('role_id', 2)
-            ->select('id_admin', 'nama_admin', 'email')
-            ->get();
+        $karyawan = Admin::select('id_admin', 'nama_admin', 'email')->get();
 
         return Inertia::render('Admin/Keuangan/Gaji', [
             'gaji' => $gaji,
-            'karyawan' => $karyawan
+            'karyawan' => $karyawan,
+            'filters' => $request->only(['search']),
         ]);
     }
 
@@ -119,27 +189,34 @@ class KeuanganAdminController extends Controller
             'gaji_pokok' => 'required|numeric|min:0',
             'bonus' => 'nullable|numeric|min:0',
             'potongan' => 'nullable|numeric|min:0',
-            'catatan' => 'nullable|string'
+            'catatan' => 'nullable|string',
+            'status' => 'required|in:pending,lunas',
         ]);
 
-        $total = $validated['gaji_pokok'] + ($validated['bonus'] ?? 0) - ($validated['potongan'] ?? 0);
+        $total = ($validated['gaji_pokok'] + ($validated['bonus'] ?? 0)) - ($validated['potongan'] ?? 0);
+
+        $detail = [
+            'gaji_pokok' => (int) $validated['gaji_pokok'],
+            'bonus' => (int) ($validated['bonus'] ?? 0),
+            'potongan' => (int) ($validated['potongan'] ?? 0),
+        ];
 
         Keuangan::create([
-            'tipe' => 'pengeluaran',
-            'kategori' => 'gaji',
-            'jumlah' => $total,
-            'tanggal_transaksi' => $validated['tanggal_gaji'],
+            'id_keuangan' => (string) str()->uuid(),
             'admin_id' => $validated['admin_id'],
-            'status_pembayaran' => 'pending', // Default
+
+            // PERUBAHAN PENTING DI SINI:
+            'tipe' => 'pengeluaran', // Disimpan sebagai pengeluaran
+            'kategori' => 'gaji',    // Ditandai kategorinya gaji
+
+            'tanggal_transaksi' => $validated['tanggal_gaji'],
             'deskripsi' => $validated['catatan'] ?? 'Gaji Karyawan',
-            'detail' => [
-                'gaji_pokok' => $validated['gaji_pokok'],
-                'bonus' => $validated['bonus'] ?? 0,
-                'potongan' => $validated['potongan'] ?? 0,
-            ]
+            'jumlah' => $total,
+            'status_pembayaran' => $validated['status'],
+            'detail' => $detail,
         ]);
 
-        return redirect()->back()->with('success', 'Penggajian berhasil disimpan!');
+        return redirect()->back()->with('message', 'Data gaji berhasil disimpan');
     }
 
     public function updateGaji(Request $request, $id)
@@ -147,79 +224,85 @@ class KeuanganAdminController extends Controller
         $keuangan = Keuangan::findOrFail($id);
 
         $validated = $request->validate([
+            'admin_id' => 'required|exists:admins,id_admin',
+            'tanggal_gaji' => 'required|date',
             'gaji_pokok' => 'required|numeric|min:0',
             'bonus' => 'nullable|numeric|min:0',
             'potongan' => 'nullable|numeric|min:0',
-            'catatan' => 'nullable|string'
+            'catatan' => 'nullable|string',
+            'status' => 'required|in:pending,lunas',
         ]);
 
-        $total = $validated['gaji_pokok'] + ($validated['bonus'] ?? 0) - ($validated['potongan'] ?? 0);
+        $total = ($validated['gaji_pokok'] + ($validated['bonus'] ?? 0)) - ($validated['potongan'] ?? 0);
+
+        $detail = [
+            'gaji_pokok' => (int) $validated['gaji_pokok'],
+            'bonus' => (int) ($validated['bonus'] ?? 0),
+            'potongan' => (int) ($validated['potongan'] ?? 0),
+        ];
 
         $keuangan->update([
+            'admin_id' => $validated['admin_id'],
+            'tanggal_transaksi' => $validated['tanggal_gaji'],
+            'deskripsi' => $validated['catatan'] ?? 'Gaji Karyawan',
             'jumlah' => $total,
-            'deskripsi' => $validated['catatan'],
-            'detail' => [
-                'gaji_pokok' => $validated['gaji_pokok'],
-                'bonus' => $validated['bonus'] ?? 0,
-                'potongan' => $validated['potongan'] ?? 0,
-            ]
+            'status_pembayaran' => $validated['status'],
+            'detail' => $detail,
+            // tipe & kategori tidak perlu diupdate karena sudah pasti pengeluaran & gaji
         ]);
 
-        return redirect()->back()->with('success', 'Data gaji diperbarui!');
+        return redirect()->back()->with('message', 'Data gaji berhasil diperbarui');
     }
 
     public function destroyGaji($id)
     {
-        Keuangan::findOrFail($id)->delete();
-        return redirect()->back()->with('success', 'Data gaji dihapus!');
+        $keuangan = Keuangan::where('kategori', 'gaji')->findOrFail($id);
+        $keuangan->delete();
+        return redirect()->back()->with('message', 'Data gaji berhasil dihapus');
     }
 
-    // ==========================================
-    //  CRUD MANUAL (Pemasukan/Pengeluaran Umum)
-    // ==========================================
+    // =================================================================
+    // CRUD GLOBAL (Untuk Pemasukan/Pengeluaran Manual Biasa)
+    // =================================================================
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'tipe' => 'required|in:pemasukan,pengeluaran',
-            'jumlah' => 'required|numeric|min:0',
-            'tanggal_transaksi' => 'required|date',
+            'jumlah' => 'required|numeric|min:1',
             'deskripsi' => 'required|string|max:255',
+            'tanggal_transaksi' => 'required|date',
+            'tipe' => 'required|in:pemasukan,pengeluaran',
         ]);
 
         Keuangan::create([
+            'id_keuangan' => (string) str()->uuid(),
             'tipe' => $validated['tipe'],
-            'kategori' => 'umum',
+            'kategori' => 'umum', // Default untuk input manual biasa
             'jumlah' => $validated['jumlah'],
-            'tanggal_transaksi' => $validated['tanggal_transaksi'],
             'deskripsi' => $validated['deskripsi'],
+            'tanggal_transaksi' => $validated['tanggal_transaksi'],
         ]);
 
-        return redirect()->back()->with('success', 'Data berhasil ditambahkan!');
+        return redirect()->back()->with('message', 'Data berhasil ditambahkan');
     }
 
     public function update(Request $request, $id)
     {
         $keuangan = Keuangan::findOrFail($id);
-
         $validated = $request->validate([
-            'jumlah' => 'required|numeric|min:0',
+            'jumlah' => 'required|numeric',
+            'deskripsi' => 'required|string',
             'tanggal_transaksi' => 'required|date',
-            'deskripsi' => 'required|string|max:255',
         ]);
 
-        $keuangan->update([
-            'jumlah' => $validated['jumlah'],
-            'tanggal_transaksi' => $validated['tanggal_transaksi'],
-            'deskripsi' => $validated['deskripsi'],
-        ]);
-
-        return redirect()->back()->with('success', 'Data berhasil diperbarui!');
+        $keuangan->update($validated);
+        return redirect()->back()->with('message', 'Data berhasil diperbarui');
     }
 
     public function destroy($id)
     {
-        Keuangan::findOrFail($id)->delete();
-        return redirect()->back()->with('success', 'Data berhasil dihapus!');
+        $keuangan = Keuangan::findOrFail($id);
+        $keuangan->delete();
+        return redirect()->back()->with('message', 'Data berhasil dihapus');
     }
 }

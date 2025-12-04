@@ -1,24 +1,25 @@
 import AdminLayout from '@/layouts/dashboardLayoutAdmin';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { FormEvent, ReactNode, useState } from 'react';
-import { HiCurrencyDollar, HiPencil, HiPlus, HiSearch, HiTrash, HiTrendingUp, HiX } from 'react-icons/hi';
+import { HiChip, HiCurrencyDollar, HiPencil, HiPlus, HiSearch, HiTrash, HiTrendingUp, HiX } from 'react-icons/hi'; // Tambah HiChip
 
 // --- TYPES ---
-interface KeuanganData {
-    id_keuangan: string;
+// Kita sesuaikan interface dengan hasil UNION query dari Controller
+interface TransaksiData {
+    id: string; // id_keuangan ATAU id_transaksi
     tanggal_transaksi: string;
     deskripsi: string;
     jumlah: number;
-    tipe: string;
+    sumber_data: 'manual' | 'otomatis'; // Penanda asal data
 }
 
 interface Props {
-    transaksi: { data: KeuanganData[]; links: any[] };
+    transaksi: { data: TransaksiData[]; links: any[] };
     totalPemasukan: number;
     countBulanIni: number;
 }
 
-// --- KOMPONEN MODAL ---
+// --- KOMPONEN MODAL (Tidak Berubah) ---
 const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: string; children: ReactNode }) => {
     if (!isOpen) return null;
     return (
@@ -41,6 +42,7 @@ export default function Pemasukan({ transaksi, totalPemasukan, countBulanIni }: 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
 
+    // Form hanya untuk Manual input
     const {
         data,
         setData,
@@ -68,10 +70,13 @@ export default function Pemasukan({ transaksi, totalPemasukan, countBulanIni }: 
         setIsModalOpen(true);
     };
 
-    const openEditModal = (item: KeuanganData) => {
+    const openEditModal = (item: TransaksiData) => {
+        // Guard: Jangan biarkan edit jika data otomatis
+        if (item.sumber_data === 'otomatis') return;
+
         setIsEditMode(true);
         setData({
-            id: item.id_keuangan,
+            id: item.id,
             jumlah: item.jumlah.toString(),
             deskripsi: item.deskripsi,
             tanggal_transaksi: item.tanggal_transaksi,
@@ -95,7 +100,6 @@ export default function Pemasukan({ transaksi, totalPemasukan, countBulanIni }: 
         }
     };
 
-    // Helper Styles
     const inputClass = 'w-full rounded-xl border border-gray-300 px-4 py-2.5 text-gray-900 shadow-sm focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:outline-none';
     const labelClass = 'mb-1.5 block text-sm font-semibold text-gray-700';
 
@@ -151,11 +155,10 @@ export default function Pemasukan({ transaksi, totalPemasukan, countBulanIni }: 
                 <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                     <div>
                         <h1 className="text-xl font-bold text-gray-800">Riwayat Pemasukan</h1>
-                        <p className="text-sm text-gray-500">Daftar semua transaksi uang masuk.</p>
+                        <p className="text-sm text-gray-500">Gabungan transaksi manual dan pembayaran sistem.</p>
                     </div>
 
                     <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                        {/* Search Bar */}
                         <div className="relative w-full md:w-64">
                             <input type="text" placeholder="Cari transaksi..." className="w-full rounded-full border-none bg-white py-2.5 pr-10 pl-4 text-sm text-gray-600 shadow-sm ring-1 ring-gray-200 focus:ring-2 focus:ring-yellow-400" />
                             <div className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400">
@@ -163,10 +166,9 @@ export default function Pemasukan({ transaksi, totalPemasukan, countBulanIni }: 
                             </div>
                         </div>
 
-                        {/* Add Button */}
                         <button onClick={openAddModal} className="flex items-center justify-center gap-2 rounded-full bg-yellow-400 px-6 py-2.5 text-sm font-bold text-gray-900 shadow-sm transition-all hover:bg-yellow-500 hover:shadow-md">
                             <HiPlus className="h-5 w-5" />
-                            Tambah Pemasukan
+                            Tambah Manual
                         </button>
                     </div>
                 </div>
@@ -179,6 +181,7 @@ export default function Pemasukan({ transaksi, totalPemasukan, countBulanIni }: 
                                 <tr>
                                     <th className="px-6 py-4 font-bold">Tanggal</th>
                                     <th className="px-6 py-4 font-bold">Keterangan</th>
+                                    <th className="px-6 py-4 font-bold">Tipe</th>
                                     <th className="px-6 py-4 font-bold">Jumlah</th>
                                     <th className="px-6 py-4 text-center font-bold">Aksi</th>
                                 </tr>
@@ -187,24 +190,48 @@ export default function Pemasukan({ transaksi, totalPemasukan, countBulanIni }: 
                                 {transaksi.data.length > 0 ? (
                                     transaksi.data.map((item, idx) => (
                                         <tr key={idx} className="transition-colors hover:bg-green-50/30">
-                                            <td className="px-6 py-4">{new Date(item.tanggal_transaksi).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
+                                            {/* Tanggal */}
+                                            <td className="px-6 py-4">{item.tanggal_transaksi ? new Date(item.tanggal_transaksi).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}</td>
+
+                                            {/* Deskripsi */}
                                             <td className="px-6 py-4 font-medium text-gray-800">{item.deskripsi}</td>
+
+                                            {/* Tipe / Sumber Data Badge */}
+                                            <td className="px-6 py-4">
+                                                {item.sumber_data === 'otomatis' ? (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
+                                                        <HiChip className="h-3 w-3" /> Sistem
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">Manual</span>
+                                                )}
+                                            </td>
+
+                                            {/* Jumlah */}
                                             <td className="px-6 py-4 font-bold text-green-600">{formatRupiah(item.jumlah)}</td>
+
+                                            {/* Aksi */}
                                             <td className="px-6 py-4 text-center">
                                                 <div className="flex justify-center gap-2">
-                                                    <button onClick={() => openEditModal(item)} className="rounded-lg bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100 hover:text-blue-700" title="Edit">
-                                                        <HiPencil className="h-5 w-5" />
-                                                    </button>
-                                                    <button onClick={() => handleDelete(item.id_keuangan)} className="rounded-lg bg-red-50 p-2 text-red-600 transition hover:bg-red-100 hover:text-red-700" title="Hapus">
-                                                        <HiTrash className="h-5 w-5" />
-                                                    </button>
+                                                    {item.sumber_data === 'manual' ? (
+                                                        <>
+                                                            <button onClick={() => openEditModal(item)} className="rounded-lg bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100 hover:text-blue-700" title="Edit">
+                                                                <HiPencil className="h-5 w-5" />
+                                                            </button>
+                                                            <button onClick={() => handleDelete(item.id)} className="rounded-lg bg-red-50 p-2 text-red-600 transition hover:bg-red-100 hover:text-red-700" title="Hapus">
+                                                                <HiTrash className="h-5 w-5" />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400 italic">Terproteksi</span>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={4} className="py-12 text-center text-gray-400">
+                                        <td colSpan={5} className="py-12 text-center text-gray-400">
                                             <div className="flex flex-col items-center justify-center gap-2">
                                                 <HiCurrencyDollar className="h-10 w-10 opacity-20" />
                                                 <p>Belum ada data pemasukan.</p>
@@ -217,35 +244,28 @@ export default function Pemasukan({ transaksi, totalPemasukan, countBulanIni }: 
                     </div>
                 </div>
 
-                {/* === MODAL FORM === */}
-                <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={isEditMode ? 'Edit Pemasukan' : 'Tambah Pemasukan'}>
+                {/* MODAL tetap sama, hanya menggunakan data state yang ada */}
+                <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={isEditMode ? 'Edit Pemasukan' : 'Tambah Pemasukan Manual'}>
                     <form onSubmit={handleSubmit} className="space-y-5">
-                        {/* Jumlah */}
+                        {/* Input Jumlah */}
                         <div>
                             <label className={labelClass}>Jumlah (Rp)</label>
                             <div className="relative">
                                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                                     <span className="text-gray-500">Rp</span>
                                 </div>
-                                <input
-                                    type="number"
-                                    value={data.jumlah}
-                                    onChange={(e) => setData('jumlah', e.target.value)}
-                                    className={`${inputClass} pl-12`} // Padding kiri extra untuk "Rp"
-                                    placeholder="0"
-                                    required
-                                />
+                                <input type="number" value={data.jumlah} onChange={(e) => setData('jumlah', e.target.value)} className={`${inputClass} pl-12`} placeholder="0" required />
                             </div>
                             {errors.jumlah && <p className="mt-1 text-xs text-red-500">{errors.jumlah}</p>}
                         </div>
 
-                        {/* Tanggal */}
+                        {/* Input Tanggal */}
                         <div>
                             <label className={labelClass}>Tanggal Transaksi</label>
                             <input type="date" value={data.tanggal_transaksi} onChange={(e) => setData('tanggal_transaksi', e.target.value)} className={inputClass} required />
                         </div>
 
-                        {/* Keterangan */}
+                        {/* Input Keterangan */}
                         <div>
                             <label className={labelClass}>Keterangan / Sumber Dana</label>
                             <textarea value={data.deskripsi} onChange={(e) => setData('deskripsi', e.target.value)} className={`${inputClass} min-h-[100px]`} placeholder="Contoh: Pembayaran Token dari Budi" required />

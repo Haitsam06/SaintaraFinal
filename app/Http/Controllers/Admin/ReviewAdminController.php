@@ -45,7 +45,7 @@ class ReviewAdminController extends Controller
         // Buat data baru
         Review::create([
             'id_admin' => auth()->guard('admin')->id(),
-            'content' => $request->content,
+            'content' => $request->input('content'),
             // id_customer dan id_instanasi otomatis null
         ]);
 
@@ -66,7 +66,7 @@ class ReviewAdminController extends Controller
         // PERBAIKAN: Menggunakan fill() dan save() untuk menghilangkan error merah di editor.
         // Ini fungsinya sama persis dengan $review->update(), tapi lebih jelas bagi VS Code.
         $review->fill([
-            'content' => $request->content,
+            'content' => $request->input('content'),
         ]);
 
         $review->save();

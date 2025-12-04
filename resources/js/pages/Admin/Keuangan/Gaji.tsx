@@ -1,8 +1,8 @@
 import AdminLayout from '@/layouts/dashboardLayoutAdmin';
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { FormEvent, ReactNode, useEffect, useState } from 'react'; // Import useEffect
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react'; // Tambah router
+import { FormEvent, ReactNode, useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { HiPencil, HiPlus, HiSearch, HiTrash, HiUser, HiX } from 'react-icons/hi';
-import ReactDOM from 'react-dom'; // Import ReactDOM untuk createPortal
 
 // --- TIPE DATA ---
 interface Admin {
@@ -29,6 +29,7 @@ interface GajiItem {
 interface Props {
     gaji: { data: GajiItem[]; links: any[] };
     karyawan: Admin[];
+    filters?: { search?: string }; // Tambah filters type
 }
 
 // --- HOOK UNTUK PORTAL CONTAINER ---
@@ -61,59 +62,31 @@ const usePortal = (id: string) => {
 };
 
 // --- MODAL DENGAN PORTAL ---
-const Modal = ({
-    isOpen,
-    onClose,
-    title,
-    children,
-}: {
-    isOpen: boolean;
-    onClose: () => void;
-    title: string;
-    children: ReactNode;
-}) => {
+const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: string; children: ReactNode }) => {
     const { mounted, container } = usePortal('portal-root');
-
     if (!isOpen || !mounted || !container) return null;
 
     return ReactDOM.createPortal(
-        <div
-            className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-            onClick={onClose}
-        >
-            {/* Card Modal */}
-            <div
-                className="
-                    w-full max-w-lg max-h-[90vh]
-                    overflow-auto rounded-2xl bg-white shadow-2xl
-                    p-6 relative
-                "
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Header */}
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+            <div className="relative max-h-[90vh] w-full max-w-lg overflow-auto rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 <div className="mb-4 flex items-center justify-between border-b pb-3">
                     <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-                    <button
-                        onClick={onClose}
-                        className="rounded-full p-1 text-gray-500 hover:bg-gray-100"
-                    >
+                    <button onClick={onClose} className="rounded-full p-1 text-gray-500 hover:bg-gray-100">
                         <HiX className="h-5 w-5" />
                     </button>
                 </div>
-
-                {/* Body */}
                 <div className="space-y-4">{children}</div>
             </div>
         </div>,
-        container
+        container,
     );
 };
 
-
-export default function GajiPage({ gaji, karyawan }: Props) {
+export default function GajiPage({ gaji, karyawan, filters }: Props) {
     const { url } = usePage();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [searchTerm, setSearchTerm] = useState(filters?.search || '');
 
     const {
         data,
@@ -138,6 +111,13 @@ export default function GajiPage({ gaji, karyawan }: Props) {
     const formatRupiah = (angka: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
 
     // --- HANDLERS ---
+    // Handle Search
+    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setSearchTerm(value);
+        router.get('/admin/keuangan/gaji', { search: value }, { preserveState: true, replace: true, preserveScroll: true });
+    };
+
     const openAddModal = () => {
         setIsEditMode(false);
         reset();
@@ -175,7 +155,6 @@ export default function GajiPage({ gaji, karyawan }: Props) {
         }
     };
 
-    // Helper Styles
     const inputClass = 'w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:outline-none';
     const labelClass = 'mb-1.5 block text-sm font-semibold text-gray-700';
 
@@ -206,9 +185,9 @@ export default function GajiPage({ gaji, karyawan }: Props) {
                     </div>
 
                     <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                        {/* Search Bar (Opsional, bisa diaktifkan jika backend support search) */}
+                        {/* Search Bar */}
                         <div className="relative w-full md:w-64">
-                            <input type="text" placeholder="Cari data gaji..." className="w-full rounded-full border-none bg-white py-2.5 pr-10 pl-4 text-sm text-gray-600 shadow-sm ring-1 ring-gray-200 focus:ring-2 focus:ring-yellow-400" />
+                            <input type="text" placeholder="Cari karyawan..." value={searchTerm} onChange={handleSearch} className="w-full rounded-full border-none bg-white py-2.5 pr-10 pl-4 text-sm text-gray-600 shadow-sm ring-1 ring-gray-200 focus:ring-2 focus:ring-yellow-400" />
                             <div className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400">
                                 <HiSearch className="h-5 w-5" />
                             </div>
@@ -291,7 +270,7 @@ export default function GajiPage({ gaji, karyawan }: Props) {
                     </div>
                 </div>
 
-                {/* === MODAL FORM (Dipindahkan ke luar DOM oleh Portal) === */}
+                {/* === MODAL FORM === */}
                 <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={isEditMode ? 'Edit Gaji' : 'Buat Penggajian'}>
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Karyawan Selection */}
