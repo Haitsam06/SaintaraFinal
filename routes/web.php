@@ -24,6 +24,7 @@ use App\Http\Controllers\Personal\TransaksiPersonalController;
 use App\Http\Controllers\Personal\DaftarTesController;
 use App\Http\Controllers\Personal\DonationController;
 use App\Http\Controllers\Personal\BantuanController;
+use App\Http\Controllers\Admin\BantuanAdminController;
 use App\Http\Controllers\Personal\SettingPersonalController;
 
 // 2. Admin Controllers
@@ -250,7 +251,12 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
     Route::get('/teamAdmin', function () {
         return Inertia::render('Admin/Tim');
     })->name('team');
-    Route::get('/supportAdmin', [SupportAdminController::class, 'index'])->name('support');
+
+    // --- UBAH BAGIAN INI (Tambahkan route CRUD) ---
+    Route::get('/supportAdmin', [BantuanAdminController::class, 'index'])->name('support');           // Untuk melihat tabel
+    Route::post('/supportAdmin', [BantuanAdminController::class, 'store'])->name('support.store');    // Untuk create/simpan
+    Route::put('/supportAdmin/{id}', [BantuanAdminController::class, 'update'])->name('support.update'); // Untuk update/edit
+    Route::delete('/supportAdmin/{id}', [BantuanAdminController::class, 'destroy'])->name('support.destroy'); // Untuk hapus
 
     // 8. PENGATURAN SYSTEM
     Route::prefix('pengaturan')->name('pengaturan.')->group(function () {
@@ -283,16 +289,16 @@ Route::middleware(['auth:instansi'])->prefix('instansi')->name('instansi.')->gro
     // 1. ZONA AKTIVASI (Tidak diproteksi 'instansi.active')
     // =====================================================================
     // User yang statusnya 'pending_payment' HANYA bisa akses ini.
-    
+
     Route::get('/activation', [ActivationController::class, 'show'])
-        ->name('activation'); 
+        ->name('activation');
 
     // =====================================================================
     // 2. ZONA FITUR UTAMA (Diproteksi 'instansi.active')
     // =====================================================================
     // User harus status 'aktif' untuk mengakses route di dalam grup ini.
     // Jika belum aktif, middleware akan menendang balik ke /activation.
-    
+
     Route::middleware(['instansi.active'])->group(function () {
 
         // --- DASHBOARD ---
@@ -306,7 +312,7 @@ Route::middleware(['auth:instansi'])->prefix('instansi')->name('instansi.')->gro
         // --- MANAJEMEN TES ---
         Route::get('/tesInstansi', [InstansiTesController::class, 'index'])->name('daftar_tes');
         Route::get('/formTesInstansi', [InstansiTesController::class, 'form'])->name('form_tes');
-        
+
         // Logic Upload & Token Tes
         Route::post('/upload-peserta', [InstansiTesController::class, 'uploadExcel'])->name('uploadPeserta');
         Route::get('/downloadFormTemplate', [InstansiTesController::class, 'downloadFormTemplate'])->name('downloadFormTemplate');

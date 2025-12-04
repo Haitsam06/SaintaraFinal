@@ -1,28 +1,29 @@
 <?php
 
-namespace App\Models\Admin; // <--- HARUS SEPERTI INI (JANGAN namespace App\Models\Admin)
+namespace App\Models\Admin; // <--- Namespace harus beda
 
-use App\Models\Customer; // Pastikan model Customer di-import
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+// Import Model dari folder utama (keluar satu folder)
+use App\Models\Customer;
+use App\Models\Instansi;
 
 class Bantuan extends Model
 {
     use HasFactory;
 
-    // Pastikan nama tabelnya benar (jamak)
     protected $table = 'bantuans';
+    protected $guarded = ['id'];
 
-    protected $fillable = [
-        'customer_id',
-        'subject',
-        'category',
-        'description',
-        'status',
-    ];
-
+    // Relasi ke Customer
     public function customer()
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'id_customer');
+    }
+
+    // Relasi ke Instansi
+    public function instansi()
+    {
+        return $this->belongsTo(Instansi::class, 'instansi_id', 'id_instansi');
     }
 }
