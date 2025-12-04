@@ -1,27 +1,49 @@
 import AdminDashboardLayout from '@/layouts/dashboardLayoutAdmin';
 import { Head, router, useForm } from '@inertiajs/react';
 import { FormEvent, useEffect, useState } from 'react';
-import { HiCalendar, HiChevronLeft, HiChevronRight, HiClock, HiMicrophone, HiPlus, HiUserGroup, HiVideoCamera, HiX } from 'react-icons/hi';
+import { HiCalendar, HiChevronLeft, HiChevronRight, HiClock, HiMicrophone, HiPencil, HiPlus, HiTrash, HiUserGroup, HiVideoCamera, HiX } from 'react-icons/hi';
 
-// Tipe data dari Backend
+// --- Tipe Data ---
+interface CalendarEvent {
+    id: number;
+    title: string;
+    date_string: string; // Teks (misal: 5 Desember 2025)
+    date_raw: string; // Raw Date (misal: 2025-12-05) -> WAJIB UNTUK EDIT
+    time: string;
+    type: string;
+    deskripsi?: string; // WAJIB UNTUK EDIT
+}
+
 interface AgendaProps {
     currentDate: string;
     monthName: string;
     events: { date: number; type: string }[];
-    upcoming: { id: number; title: string; date_string: string; time: string; type: string }[];
+    upcoming: CalendarEvent[];
 }
 
 export default function Agenda({ currentDate, monthName, events, upcoming }: AgendaProps) {
     const [calendarGrid, setCalendarGrid] = useState<any[]>([]);
     const [showModal, setShowModal] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false); // State mode edit
 
     // Form Inertia
-    const { data, setData, post, processing, reset, errors, transform } = useForm({
+    const {
+        data,
+        setData,
+        post,
+        put,
+        delete: destroy,
+        processing,
+        reset,
+        errors,
+        clearErrors,
+    } = useForm({
+        id: '',
         nama_agenda: '',
         tanggal: '',
         waktu_mulai: '',
         waktu_selesai: '',
-        waktu: '',
+        waktu: '', // Field gabungan untuk dikirim ke backend
         tipe: 'blue',
         deskripsi: '',
     });
@@ -53,30 +75,102 @@ export default function Agenda({ currentDate, monthName, events, upcoming }: Age
         setCalendarGrid(daysArray);
     }, [currentDate, events]);
 
-    // === NAVIGASI BULAN ===
+    // === HANDLERS ===
+
+    // 1. Buka Modal Tambah
+    const openAddModal = () => {
+        setIsEditMode(false);
+        reset();
+        clearErrors();
+        // Set default values
+        setData((data) => ({
+            ...data,
+            nama_agenda: '',
+            tanggal: '',
+            waktu_mulai: '',
+            waktu_selesai: '',
+            tipe: 'blue',
+            deskripsi: '',
+        }));
+        setShowModal(true);
+    };
+
+    // 2. Buka Modal Edit
+    const openEditModal = (item: CalendarEvent) => {
+        setIsEditMode(true);
+        clearErrors();
+
+        // Parsing waktu "10:00 - 12:00" -> Start & End
+        // Pastikan backend format waktunya konsisten dengan pemisah " - "
+        const times = item.time ? item.time.split(' - ') : ['', ''];
+        const start = times[0] ? times[0].trim() : '';
+        const end = times[1] ? times[1].trim() : '';
+
+        setData({
+            id: item.id.toString(),
+            nama_agenda: item.title,
+
+            // GUNAKAN DATE_RAW DARI BACKEND
+            tanggal: item.date_raw || '',
+
+            waktu_mulai: start,
+            waktu_selesai: end,
+            waktu: item.time, // Fallback
+            tipe: item.type,
+
+            // GUNAKAN DESKRIPSI DARI BACKEND
+            deskripsi: item.deskripsi || '',
+        });
+        setShowModal(true);
+    };
+
+    // 3. Submit Form
+    const handleSubmit = (e: FormEvent) => {
+        e.preventDefault();
+
+        // Gabungkan waktu manual sebelum kirim
+        // Karena `transform` inertia kadang tricky saat submit cepat
+        const payload = {
+            ...data,
+            waktu: `${data.waktu_mulai} - ${data.waktu_selesai}`,
+        };
+
+        if (isEditMode) {
+            put(`/admin/agendaAdmin/${data.id}`, {
+                onBefore: () => setData('waktu', `${data.waktu_mulai} - ${data.waktu_selesai}`),
+                onSuccess: () => {
+                    setShowModal(false);
+                    reset();
+                },
+            });
+        } else {
+            post('/admin/agendaAdmin', {
+                onBefore: () => setData('waktu', `${data.waktu_mulai} - ${data.waktu_selesai}`),
+                onSuccess: () => {
+                    setShowModal(false);
+                    reset();
+                },
+            });
+        }
+    };
+
+    // 4. Delete Agenda
+    const handleDelete = (id: number) => {
+        if (confirm('Apakah Anda yakin ingin menghapus agenda ini?')) {
+            destroy(`/admin/agendaAdmin/${id}`, {
+                preserveScroll: true,
+            });
+        }
+    };
+
+    // 5. Navigasi Bulan
     const changeMonth = (offset: number) => {
         const newDate = new Date(currentDate);
         newDate.setMonth(newDate.getMonth() + offset);
         router.get('/admin/agendaAdmin', { date: newDate.toISOString().split('T')[0] }, { preserveState: true, preserveScroll: true });
     };
 
-    // === SUBMIT FORM ===
-    const handleSubmit = (e: FormEvent) => {
-        e.preventDefault();
-
-        transform((data) => ({
-            ...data,
-            waktu: `${data.waktu_mulai} - ${data.waktu_selesai}`,
-        }));
-
-        post('/admin/agendaAdmin', {
-            onSuccess: () => {
-                setShowModal(false);
-                reset();
-            },
-        });
-    };
-
+    // Helpers UI
     const getIcon = (type: string) => {
         if (type === 'green') return <HiVideoCamera className="h-5 w-5 text-green-600" />;
         if (type === 'red') return <HiUserGroup className="h-5 w-5 text-red-600" />;
@@ -84,9 +178,9 @@ export default function Agenda({ currentDate, monthName, events, upcoming }: Age
     };
 
     const getBgColor = (type: string) => {
-        if (type === 'green') return 'bg-green-50';
-        if (type === 'red') return 'bg-red-50';
-        return 'bg-blue-50';
+        if (type === 'green') return 'bg-green-50 border-green-100';
+        if (type === 'red') return 'bg-red-50 border-red-100';
+        return 'bg-blue-50 border-blue-100';
     };
 
     return (
@@ -100,7 +194,7 @@ export default function Agenda({ currentDate, monthName, events, upcoming }: Age
                         <h1 className="text-2xl font-bold text-gray-800">Agenda & Kalender</h1>
                         <p className="text-sm text-gray-500">Kelola jadwal kegiatan dan pertemuan tim.</p>
                     </div>
-                    <button onClick={() => setShowModal(true)} className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-6 py-2.5 text-sm font-bold text-gray-900 shadow-sm transition-all hover:bg-yellow-500 hover:shadow-md">
+                    <button onClick={openAddModal} className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-6 py-2.5 text-sm font-bold text-gray-900 shadow-sm transition-all hover:bg-yellow-500 hover:shadow-md">
                         <HiPlus className="h-5 w-5" /> Tambah Agenda
                     </button>
                 </div>
@@ -139,9 +233,7 @@ export default function Agenda({ currentDate, monthName, events, upcoming }: Age
                                 {calendarGrid.map((item, index) => (
                                     <div key={index} className="relative flex flex-col items-center">
                                         {item.day && (
-                                            <div
-                                                className={`relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-sm font-medium transition-all duration-200 ${item.active ? 'scale-110 bg-yellow-400 font-bold text-gray-900 shadow-md' : 'text-gray-700 hover:bg-gray-50'} `}
-                                            >
+                                            <div className={`relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-sm font-medium transition-all duration-200 ${item.active ? 'scale-110 bg-yellow-400 font-bold text-gray-900 shadow-md' : 'text-gray-700 hover:bg-gray-50'} `}>
                                                 {item.day}
                                                 {/* Dot Indicator */}
                                                 {item.dot && <span className={`absolute -bottom-1 h-1.5 w-1.5 rounded-full border border-white ${item.dot === 'blue' ? 'bg-blue-500' : item.dot === 'green' ? 'bg-green-500' : 'bg-red-500'} `}></span>}
@@ -180,14 +272,28 @@ export default function Agenda({ currentDate, monthName, events, upcoming }: Age
 
                                 {upcoming.map((item) => (
                                     <div key={item.id} className="group relative cursor-pointer pl-6">
-                                        {/* Dot Indicator pada Timeline */}
+                                        {/* Dot Indicator */}
                                         <span className={`absolute top-1.5 -left-[5px] h-3 w-3 rounded-full border-2 border-white shadow-sm transition-transform group-hover:scale-125 ${item.type === 'red' ? 'bg-red-500' : item.type === 'green' ? 'bg-green-500' : 'bg-blue-500'} `}></span>
 
-                                        <div className={`rounded-xl p-4 transition-all duration-200 hover:shadow-md ${getBgColor(item.type)}`}>
+                                        <div className={`rounded-xl border p-4 transition-all duration-200 hover:shadow-md ${getBgColor(item.type)}`}>
                                             <div className="flex items-start justify-between">
-                                                <h4 className="font-bold text-gray-800">{item.title}</h4>
-                                                <div className="opacity-50">{getIcon(item.type)}</div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="opacity-70">{getIcon(item.type)}</div>
+                                                    <h4 className="line-clamp-1 font-bold text-gray-800">{item.title}</h4>
+                                                </div>
+
+                                                {/* Action Buttons */}
+                                                <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                                    <button onClick={() => openEditModal(item)} className="rounded p-1 text-gray-500 hover:bg-white hover:text-blue-600" title="Edit Agenda">
+                                                        <HiPencil className="h-4 w-4" />
+                                                    </button>
+                                                    <button onClick={() => handleDelete(item.id)} className="rounded p-1 text-gray-500 hover:bg-white hover:text-red-600" title="Hapus Agenda">
+                                                        <HiTrash className="h-4 w-4" />
+                                                    </button>
+                                                </div>
                                             </div>
+
+                                            <p className="mt-1 line-clamp-2 text-xs text-gray-600">{item.deskripsi || 'Tidak ada deskripsi tambahan.'}</p>
 
                                             <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
                                                 <div className="flex items-center gap-1">
@@ -213,101 +319,79 @@ export default function Agenda({ currentDate, monthName, events, upcoming }: Age
                         )}
                     </div>
                 </div>
+            </div>
 
-                {/* === MODAL TAMBAH AGENDA === */}
-                {showModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm transition-all">
-                        <div className="w-full max-w-md scale-100 transform rounded-2xl bg-white p-8 shadow-2xl transition-all">
-                            <div className="mb-6 flex items-center justify-between border-b border-gray-100 pb-4">
-                                <h3 className="text-xl font-bold text-gray-900">Buat Agenda Baru</h3>
-                                <button onClick={() => setShowModal(false)} className="rounded-full bg-gray-50 p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600">
-                                    <HiX className="h-5 w-5" />
-                                </button>
+            {/* === MODAL FORM === */}
+            {showModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm transition-all">
+                    <div className="w-full max-w-md scale-100 transform rounded-2xl bg-white p-8 shadow-2xl transition-all">
+                        <div className="mb-6 flex items-center justify-between border-b border-gray-100 pb-4">
+                            <h3 className="text-xl font-bold text-gray-900">{isEditMode ? 'Edit Agenda' : 'Buat Agenda Baru'}</h3>
+                            <button onClick={() => setShowModal(false)} className="rounded-full bg-gray-50 p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600">
+                                <HiX className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            {/* Judul */}
+                            <div>
+                                <label className="mb-1.5 block text-sm font-bold text-gray-700">Judul Agenda</label>
+                                <input type="text" required value={data.nama_agenda} onChange={(e) => setData('nama_agenda', e.target.value)} className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:outline-none" placeholder="Contoh: Meeting Mingguan" />
+                                {errors.nama_agenda && <p className="mt-1 text-xs text-red-500">{errors.nama_agenda}</p>}
                             </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-5">
-                                {/* Input Judul */}
+                            {/* Deskripsi */}
+                            <div>
+                                <label className="mb-1.5 block text-sm font-bold text-gray-700">Deskripsi (Opsional)</label>
+                                <textarea rows={3} value={data.deskripsi} onChange={(e) => setData('deskripsi', e.target.value)} className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:outline-none" placeholder="Tambahkan detail kegiatan..." />
+                            </div>
+
+                            {/* Tanggal & Waktu */}
+                            <div className="grid grid-cols-1 gap-5">
                                 <div>
-                                    <label className="mb-1.5 block text-sm font-bold text-gray-700">Judul Agenda</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={data.nama_agenda}
-                                        onChange={(e) => setData('nama_agenda', e.target.value)}
-                                        className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:outline-none"
-                                        placeholder="Contoh: Meeting Mingguan"
-                                    />
-                                    {errors.nama_agenda && <p className="mt-1 text-xs text-red-500">{errors.nama_agenda}</p>}
+                                    <label className="mb-1.5 block text-sm font-bold text-gray-700">Tanggal</label>
+                                    <input type="date" required value={data.tanggal} onChange={(e) => setData('tanggal', e.target.value)} className="w-full cursor-pointer rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:outline-none" style={{ colorScheme: 'light' }} />
+                                    {errors.tanggal && <p className="mt-1 text-xs text-red-500">{errors.tanggal}</p>}
                                 </div>
 
-                                {/* Input Tanggal & Waktu */}
-                                <div className="grid grid-cols-1 gap-5">
-                                    <div>
-                                        <label className="mb-1.5 block text-sm font-bold text-gray-700">Tanggal</label>
-                                        <input
-                                            type="date"
-                                            required
-                                            value={data.tanggal}
-                                            onChange={(e) => setData('tanggal', e.target.value)}
-                                            className="w-full cursor-pointer rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:outline-none"
-                                            style={{ colorScheme: 'light' }}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="mb-1.5 block text-sm font-bold text-gray-700">Waktu</label>
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="time"
-                                                required
-                                                value={data.waktu_mulai}
-                                                onChange={(e) => setData('waktu_mulai', e.target.value)}
-                                                className="w-full cursor-pointer rounded-xl border border-gray-300 px-3 py-2.5 text-center text-sm text-gray-900 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:outline-none"
-                                            />
-                                            <span className="font-bold text-gray-400">-</span>
-                                            <input
-                                                type="time"
-                                                required
-                                                value={data.waktu_selesai}
-                                                onChange={(e) => setData('waktu_selesai', e.target.value)}
-                                                className="w-full cursor-pointer rounded-xl border border-gray-300 px-3 py-2.5 text-center text-sm text-gray-900 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:outline-none"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Pilihan Kategori */}
                                 <div>
-                                    <label className="mb-2 block text-sm font-bold text-gray-700">Kategori</label>
-                                    <div className="flex gap-3">
-                                        {[
-                                            { val: 'blue', label: 'Umum', bg: 'bg-blue-500' },
-                                            { val: 'green', label: 'Online', bg: 'bg-green-500' },
-                                            { val: 'red', label: 'Penting', bg: 'bg-red-500' },
-                                        ].map((opt) => (
-                                            <label
-                                                key={opt.val}
-                                                className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border px-2 py-2.5 transition-all ${data.tipe === opt.val ? 'border-yellow-400 bg-yellow-50 ring-1 ring-yellow-400' : 'border-gray-200 hover:bg-gray-50'} `}
-                                            >
-                                                <input type="radio" name="tipe" value={opt.val} checked={data.tipe === opt.val} onChange={(e) => setData('tipe', e.target.value)} className="hidden" />
-                                                <span className={`h-2.5 w-2.5 rounded-full ${opt.bg}`}></span>
-                                                <span className="text-xs font-bold text-gray-700">{opt.label}</span>
-                                            </label>
-                                        ))}
+                                    <label className="mb-1.5 block text-sm font-bold text-gray-700">Waktu</label>
+                                    <div className="flex items-center gap-3">
+                                        <input type="time" required value={data.waktu_mulai} onChange={(e) => setData('waktu_mulai', e.target.value)} className="w-full cursor-pointer rounded-xl border border-gray-300 px-3 py-2.5 text-center text-sm text-gray-900 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:outline-none" />
+                                        <span className="font-bold text-gray-400">-</span>
+                                        <input type="time" required value={data.waktu_selesai} onChange={(e) => setData('waktu_selesai', e.target.value)} className="w-full cursor-pointer rounded-xl border border-gray-300 px-3 py-2.5 text-center text-sm text-gray-900 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 focus:outline-none" />
                                     </div>
                                 </div>
+                            </div>
 
-                                {/* Tombol Simpan */}
-                                <div className="pt-4">
-                                    <button type="submit" disabled={processing} className="w-full rounded-xl bg-yellow-400 py-3 text-sm font-bold text-gray-900 shadow-lg shadow-yellow-100 transition-all hover:bg-yellow-500 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70">
-                                        {processing ? 'Menyimpan...' : 'Simpan Agenda'}
-                                    </button>
+                            {/* Kategori */}
+                            <div>
+                                <label className="mb-2 block text-sm font-bold text-gray-700">Kategori</label>
+                                <div className="flex gap-3">
+                                    {[
+                                        { val: 'blue', label: 'Umum', bg: 'bg-blue-500' },
+                                        { val: 'green', label: 'Online', bg: 'bg-green-500' },
+                                        { val: 'red', label: 'Penting', bg: 'bg-red-500' },
+                                    ].map((opt) => (
+                                        <label key={opt.val} className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border px-2 py-2.5 transition-all ${data.tipe === opt.val ? 'border-yellow-400 bg-yellow-50 ring-1 ring-yellow-400' : 'border-gray-200 hover:bg-gray-50'} `}>
+                                            <input type="radio" name="tipe" value={opt.val} checked={data.tipe === opt.val} onChange={(e) => setData('tipe', e.target.value)} className="hidden" />
+                                            <span className={`h-2.5 w-2.5 rounded-full ${opt.bg}`}></span>
+                                            <span className="text-xs font-bold text-gray-700">{opt.label}</span>
+                                        </label>
+                                    ))}
                                 </div>
-                            </form>
-                        </div>
+                            </div>
+
+                            {/* Submit */}
+                            <div className="pt-4">
+                                <button type="submit" disabled={processing} className="w-full rounded-xl bg-yellow-400 py-3 text-sm font-bold text-gray-900 shadow-lg shadow-yellow-100 transition-all hover:bg-yellow-500 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70">
+                                    {processing ? 'Menyimpan...' : isEditMode ? 'Simpan Perubahan' : 'Buat Agenda'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </AdminDashboardLayout>
     );
 }
