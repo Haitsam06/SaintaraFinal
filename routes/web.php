@@ -204,7 +204,8 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(functi
     // 3. AGENDA
     Route::get('/agendaAdmin', [AgendaAdminController::class, 'index'])->name('agenda');
     Route::post('/agendaAdmin', [AgendaAdminController::class, 'store'])->name('agenda.store');
-
+    Route::put('/agendaAdmin/{id}', [AgendaAdminController::class, 'update'])->name('agenda.update');
+    Route::delete('/agendaAdmin/{id}', [AgendaAdminController::class, 'destroy'])->name('agenda.destroy');
     // 4. MANAJEMEN PENGGUNA
     Route::prefix('pengguna')->name('pengguna.')->group(function () {
         Route::get('/personal', [PenggunaAdminController::class, 'indexPersonal'])->name('personal');

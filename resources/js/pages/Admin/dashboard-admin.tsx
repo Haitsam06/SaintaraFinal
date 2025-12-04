@@ -1,6 +1,6 @@
 import AdminDashboardLayout from '@/layouts/dashboardLayoutAdmin';
-import { Head } from '@inertiajs/react';
-import { HiArrowSmRight, HiChatAlt2, HiCurrencyDollar, HiTrendingUp, HiUserGroup, HiUsers } from 'react-icons/hi';
+import { Head, Link } from '@inertiajs/react';
+import { HiArrowSmRight, HiChatAlt2, HiCurrencyDollar, HiUserGroup, HiUsers } from 'react-icons/hi';
 
 // Definisikan tipe Props
 interface DashboardProps {
@@ -24,14 +24,31 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ stats }: DashboardProps) {
-    // Helper untuk format Rupiah
-    const formatRupiah = (number: number) => {
+    // Helper untuk format Rupiah yang AMAN
+    const formatRupiah = (number: number | null | undefined) => {
+        const safeNumber = number || 0;
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
             currency: 'IDR',
             minimumFractionDigits: 0,
-        }).format(number);
+        }).format(safeNumber);
     };
+
+    // Safety check jika stats belum ada (misal loading state dari Inertia)
+    if (!stats) {
+        return (
+            <AdminDashboardLayout>
+                <div className="flex h-screen items-center justify-center">
+                    <p className="text-gray-500">Memuat data dashboard...</p>
+                </div>
+            </AdminDashboardLayout>
+        );
+    }
+
+    // Default values untuk distribusi untuk menghindari NaN di chart
+    const distPersonal = stats.distribusi?.personal || 0;
+    const distInstitution = stats.distribusi?.institution || 0;
+    const distGift = stats.distribusi?.gift || 0;
 
     return (
         <AdminDashboardLayout>
@@ -63,7 +80,7 @@ export default function Dashboard({ stats }: DashboardProps) {
                             </div>
                             <div>
                                 <p className="text-xs font-medium text-gray-400">Customer Personal</p>
-                                <h3 className="text-2xl font-bold text-gray-900">{stats.customer_aktif}</h3>
+                                <h3 className="text-2xl font-bold text-gray-900">{stats.customer_aktif || 0}</h3>
                             </div>
                         </div>
                     </div>
@@ -76,7 +93,7 @@ export default function Dashboard({ stats }: DashboardProps) {
                             </div>
                             <div>
                                 <p className="text-xs font-medium text-gray-400">Instansi Terdaftar</p>
-                                <h3 className="text-2xl font-bold text-gray-900">{stats.instansi_aktif}</h3>
+                                <h3 className="text-2xl font-bold text-gray-900">{stats.instansi_aktif || 0}</h3>
                             </div>
                         </div>
                     </div>
@@ -89,7 +106,7 @@ export default function Dashboard({ stats }: DashboardProps) {
                             </div>
                             <div>
                                 <p className="text-xs font-medium text-gray-400">Agenda Mendatang</p>
-                                <h3 className="text-2xl font-bold text-gray-900">{stats.agenda.length}</h3>
+                                <h3 className="text-2xl font-bold text-gray-900">{stats.agenda ? stats.agenda.length : 0}</h3>
                             </div>
                         </div>
                     </div>
@@ -99,11 +116,11 @@ export default function Dashboard({ stats }: DashboardProps) {
                 {/* BAGIAN 2: CHARTS & LIST */}
                 {/* ======================= */}
                 <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                    {/* KOLOM KIRI: Distribusi Tes (Donut Chart) */}
+                    {/* KOLOM KIRI: Distribusi (Donut Chart) */}
                     <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm lg:col-span-2">
                         <div className="mb-8 flex items-center justify-between">
                             <h3 className="text-lg font-bold text-gray-800">Distribusi Pembelian Token</h3>
-                            <button className="text-sm font-medium text-gray-400 hover:text-yellow-600">Lihat Detail</button>
+                            <span className="text-sm font-medium text-gray-400">Tahun Ini</span>
                         </div>
 
                         <div className="flex flex-col items-center justify-center gap-12 md:flex-row">
@@ -112,9 +129,9 @@ export default function Dashboard({ stats }: DashboardProps) {
                                 className="relative h-56 w-56 rounded-full shadow-inner"
                                 style={{
                                     background: `conic-gradient(
-                                        #FCD34D 0% ${stats.distribusi.personal}%, 
-                                        #d97706 ${stats.distribusi.personal}% ${stats.distribusi.personal + stats.distribusi.institution}%, 
-                                        #fef08a ${stats.distribusi.personal + stats.distribusi.institution}% 100%
+                                        #FCD34D 0% ${distPersonal}%, 
+                                        #d97706 ${distPersonal}% ${distPersonal + distInstitution}%, 
+                                        #fef08a ${distPersonal + distInstitution}% 100%
                                     )`,
                                 }}
                             >
@@ -130,21 +147,21 @@ export default function Dashboard({ stats }: DashboardProps) {
                                 <div className="flex items-start gap-4">
                                     <span className="mt-1 h-3 w-3 flex-shrink-0 rounded-full bg-yellow-400"></span>
                                     <div>
-                                        <p className="text-sm font-bold text-gray-800">Personal ({stats.distribusi.personal}%)</p>
+                                        <p className="text-sm font-bold text-gray-800">Personal ({distPersonal}%)</p>
                                         <p className="text-xs text-gray-400">Pembelian perorangan</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-4">
                                     <span className="mt-1 h-3 w-3 flex-shrink-0 rounded-full bg-amber-600"></span>
                                     <div>
-                                        <p className="text-sm font-bold text-gray-800">Institution ({stats.distribusi.institution}%)</p>
+                                        <p className="text-sm font-bold text-gray-800">Institution ({distInstitution}%)</p>
                                         <p className="text-xs text-gray-400">Pembelian instansi/perusahaan</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-4">
                                     <span className="mt-1 h-3 w-3 flex-shrink-0 rounded-full bg-yellow-200"></span>
                                     <div>
-                                        <p className="text-sm font-bold text-gray-800">Gift ({stats.distribusi.gift}%)</p>
+                                        <p className="text-sm font-bold text-gray-800">Gift ({distGift}%)</p>
                                         <p className="text-xs text-gray-400">Token hadiah donasi</p>
                                     </div>
                                 </div>
@@ -152,16 +169,16 @@ export default function Dashboard({ stats }: DashboardProps) {
                         </div>
                     </div>
 
-                    {/* KOLOM KANAN: Agenda Mendatang */}
+                    {/* KOLOM KANAN: Agenda Mendatang List */}
                     <div className="flex flex-col rounded-2xl border border-gray-100 bg-white p-8 shadow-sm lg:col-span-1">
                         <h3 className="mb-6 text-lg font-bold text-gray-800">Agenda Mendatang</h3>
 
-                        {stats.agenda.length > 0 ? (
+                        {stats.agenda && stats.agenda.length > 0 ? (
                             <div className="relative flex-1 space-y-8 pl-4">
                                 {/* Garis Vertikal Timeline */}
                                 <div className="absolute top-2 left-0 h-full w-0.5 bg-gray-100"></div>
 
-                                {stats.agenda.map((item, index) => (
+                                {stats.agenda.map((item) => (
                                     <div key={item.id} className="relative pl-6">
                                         {/* Dot Indicator */}
                                         <span className={`absolute top-1.5 -left-[5px] h-3 w-3 rounded-full border-2 border-white shadow-sm ${item.type === 'red' ? 'bg-red-500' : item.type === 'green' ? 'bg-green-500' : 'bg-blue-500'} `}></span>
@@ -181,9 +198,9 @@ export default function Dashboard({ stats }: DashboardProps) {
                             </div>
                         )}
 
-                        <a href="/admin/agendaAdmin" className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-gray-50 py-3 text-sm font-bold text-gray-600 transition-colors hover:bg-yellow-50 hover:text-yellow-700">
+                        <Link href="/admin/agendaAdmin" className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-gray-50 py-3 text-sm font-bold text-gray-600 transition-colors hover:bg-yellow-50 hover:text-yellow-700">
                             Lihat Semua Agenda <HiArrowSmRight className="h-4 w-4" />
-                        </a>
+                        </Link>
                     </div>
                 </div>
             </div>
