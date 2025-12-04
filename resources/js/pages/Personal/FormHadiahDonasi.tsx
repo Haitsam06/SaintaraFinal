@@ -37,11 +37,27 @@ export default function DonationForm() {
         });
     };
 
+    const handleBack = () => {
+        window.history.back();
+    }
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#FFFBE6] px-4">
             <Head title="Donasi Token" />
 
             <div className="w-full max-w-lg">
+
+                {/* --- Tombol Kembali --- */}
+                <button 
+                    onClick={handleBack}
+                    className="top-6 left-6 p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
+                    title="Kembali"
+                    type="button"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                    </svg>
+                </button>
                 
                 {/* Header */}
                 <div className="text-center mb-8">

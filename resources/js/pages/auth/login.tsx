@@ -26,14 +26,26 @@ export default function Login() {
         });
     };
 
+    const handleBack = () => {
+        window.history.back();
+    }
+
     return (
         <div className="flex min-h-screen items-center justify-center bg-yellow-400 p-6 font-sans">
             <Head title="Masuk Akun" />
             <div className="relative w-full max-w-md rounded-3xl bg-white p-8 shadow-xl md:p-12">
-                {/* Tombol Silang Kembali ke Home */}
-                <Link href="/" className="absolute top-6 right-6 text-gray-400 transition-colors hover:text-gray-600">
-                    <span className="text-2xl">&times;</span>
-                </Link>
+
+                {/* --- Tombol Kembali --- */}
+                <button 
+                    onClick={handleBack}
+                    className="top-6 left-6 p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
+                    title="Kembali"
+                    type="button"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                    </svg>
+                </button>
 
                 <div className="flex flex-col items-center">
                     <Logo />

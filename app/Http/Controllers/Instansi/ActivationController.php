@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Instansi;
 use App\Http\Controllers\Controller;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
-// use Illuminate\Support\Facades\Str; <--- Hapus ini pun tidak masalah jika pakai str()
 use App\Models\Pembayaran;
 use App\Models\Paket;
 use Midtrans\Config;
