@@ -154,7 +154,6 @@ class TransaksiPersonalController extends Controller
 
     /**
      * Dipanggil oleh Midtrans (Webhook) saat transaksi berubah status.
-     * Logika Generate Token ada di sini.
      */
     public function callback(Request $request)
     {
